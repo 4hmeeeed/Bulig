@@ -5,6 +5,7 @@ import ph.bulig.mesh.digest.BloomDigest
 import ph.bulig.mesh.model.DeviceId
 import ph.bulig.mesh.model.EmergencyId
 import ph.bulig.mesh.model.EmergencyPayload
+import ph.bulig.mesh.model.Handoff
 import ph.bulig.mesh.model.MeshPacket
 import ph.bulig.mesh.model.PacketId
 import ph.bulig.mesh.policy.ForwardDecision
@@ -39,6 +40,14 @@ class MeshNode(
 
     /** Peers already handed a given packet, so one session never repeats itself. */
     private val sentThisSession = HashMap<PacketId, MutableSet<DeviceId>>()
+
+    /**
+     * Handoffs this device performed itself, with observed times.
+     *
+     * Only direct handoffs are recorded, because they are the only ones an
+     * offline device can actually witness. See [Handoff].
+     */
+    private val handoffs = HashMap<PacketId, MutableList<Handoff>>()
 
     var batteryPercent: Int = 100
 
@@ -146,6 +155,8 @@ class MeshNode(
                     forwarded++
                     sentThisSession.getOrPut(packet.packetId) { mutableSetOf() }
                         .add(peer.deviceId)
+                    handoffs.getOrPut(packet.packetId) { mutableListOf() }
+                        .add(Handoff(peer.deviceId, clock.nowMs()))
                     onEvent(MeshEvent.Forwarded(packet.packetId, peer.deviceId))
                 }
             }
@@ -168,6 +179,23 @@ class MeshNode(
     }
 
     fun heldPackets(): List<MeshPacket> = store.all()
+
+    /**
+     * Peers this device gave a copy to, in the order it happened.
+     *
+     * This is what the report timeline can honestly show while offline. It is
+     * NOT the packet's full route — that is only knowable once the server
+     * confirms delivery and reports the path back.
+     */
+    fun handoffsFor(packetId: PacketId): List<Handoff> =
+        handoffs[packetId].orEmpty().toList()
+
+    /** How many peers have taken a copy of this report from this device. */
+    fun handoffCount(packetId: PacketId): Int = handoffs[packetId]?.size ?: 0
+
+    /** Reports this device is carrying on behalf of someone else. */
+    fun carryingForOthers(): List<MeshPacket> =
+        store.all().filter { it.originDeviceId != deviceId }
 
     sealed interface ReceiveOutcome {
         data class Accepted(val packet: MeshPacket) : ReceiveOutcome

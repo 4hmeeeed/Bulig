@@ -11,17 +11,24 @@ class EmergencyTypeSeeder extends Seeder
     {
         // Configurable per section 8 — seeded, not hardcoded into the app.
         // Waray-Waray labels sit alongside English for resident-facing screens.
+        // Labels and Waray-Waray strings are taken verbatim from the design
+        // handoff (docs/design/README.md), which is authoritative for copy.
+        //
+        // TO BE VALIDATED: several of these strings are flagged in the handoff
+        // as "reviewed placeholders". At least three read as Cebuano or
+        // Hiligaynon rather than Waray-Waray — see docs/design/COPY-REVIEW.md.
+        // They must be checked by a native Waray speaker before the pilot.
         $types = [
-            ['MEDICAL', 'Medical Emergency', 'Emerhensya Medikal', 'heart-pulse', 35, true],
-            ['FIRE', 'Fire', 'Sunog', 'flame', 40, true],
-            ['TRAPPED', 'Trapped Person', 'Nasakop nga Tawo', 'user-lock', 40, true],
-            ['LANDSLIDE', 'Landslide', 'Pagkatumba han Yuta', 'mountain', 35, true],
-            ['EARTHQUAKE', 'Earthquake', 'Linog', 'waves', 35, true],
-            ['FLOOD', 'Flood', 'Baha', 'droplets', 30, false],
-            ['RESCUE', 'Rescue Needed', 'Kinahanglan Bulig', 'life-buoy', 30, false],
-            ['MISSING', 'Missing Person', 'Nawara nga Tawo', 'user-search', 25, false],
-            ['INFRA', 'Infrastructure Damage', 'Nadaot nga Pasilidad', 'construction', 15, false],
-            ['OTHER', 'Other', 'Iba pa', 'circle-help', 10, false],
+            ['MEDICAL', 'Medical', 'Emerhensya Medikal', 'medical_services', 35, true],
+            ['FIRE', 'Fire', 'Sunog', 'local_fire_department', 40, true],
+            ['FLOOD', 'Flood', 'Baha', 'flood', 30, false],
+            ['LANDSLIDE', 'Landslide', 'Pagdahili sang tuna', 'landslide', 35, true],
+            ['EARTHQUAKE', 'Earthquake', 'Linog', 'earthquake', 35, true],
+            ['RESCUE', 'Rescue needed', 'Kinahanglan bulig', 'hail', 30, false],
+            ['MISSING', 'Missing person', 'Nawawara nga tawo', 'person_search', 25, false],
+            ['TRAPPED', 'Trapped person', 'Nakukulong nga tawo', 'emergency_home', 40, true],
+            ['INFRA', 'Infrastructure', 'Nadaot nga pasilidad', 'construction', 15, false],
+            ['OTHER', 'Other', 'Iba pa', 'more_horiz', 10, false],
         ];
 
         foreach ($types as $i => [$code, $en, $war, $icon, $severity, $lifeThreatening]) {

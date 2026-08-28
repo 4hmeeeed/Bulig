@@ -51,6 +51,14 @@ Payloads are authenticated (HMAC) but not encrypted between devices. A determine
 attacker with a BLE sniffer within range could read a report in transit. Payload
 encryption is documented future work, not a claimed feature.
 
+## 9a. Local storage is not yet encrypted at rest
+The mobile design tells a resident their report "sits on this phone, encrypted",
+and the design handoff requires encryption at rest. The `:data` layer that would
+provide it (SQLCipher or the platform equivalent) is not built yet. Until it is,
+that screen must not ship — a claim the app does not honour is exactly the
+failure this project's design rules exist to prevent. Tracked in
+`docs/design/DESIGN-RECONCILIATION.md` §6.
+
 ## 10. Bulig does not replace official emergency services
 It is a barangay-level coordination aid. It is not connected to 911, PNP, BFP, or
 any government dispatch system, and the app states so on first launch and in the

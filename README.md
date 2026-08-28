@@ -42,6 +42,8 @@ android/     Kotlin/Compose relay + reporting app (next phase)
 | [`09-workflows.md`](docs/09-workflows.md) | Emergency, responder, and command-center flows |
 | [`10-testing-plan.md`](docs/10-testing-plan.md) | TESTS 1–8, ISO/IEC 25010, SUS, metrics |
 | [`LIMITATIONS.md`](docs/LIMITATIONS.md) | Honest scope and known constraints |
+| [`design/HANDOFF.md`](docs/design/HANDOFF.md) | Mobile UI design bundle (12 artboards) |
+| [`design/DESIGN-RECONCILIATION.md`](docs/design/DESIGN-RECONCILIATION.md) | Where the design and the built system agree, differ, and why |
 
 ## Running the backend
 
