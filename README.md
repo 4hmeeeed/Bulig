@@ -78,10 +78,20 @@ location appears anywhere in this repository.
 cd backend && php artisan test
 ```
 
-Covers packet deduplication, idempotent re-synchronisation, TTL enforcement,
-HMAC verification, clock-skew correction, the priority worked examples from
-`docs/08-priority-engine.md`, role-based access control, and the responder
-workflow.
+```bash
+cd android && gradle test
+```
+
+**169 tests in total** — 66 PHP, 103 Kotlin. They cover packet deduplication,
+idempotent re-synchronisation, TTL enforcement, HMAC verification, clock-skew
+correction, the priority worked examples from `docs/08-priority-engine.md`,
+role-based access control, the responder workflow, multi-hop mesh delivery, the
+local-first write path, delivery-state honesty, and sync batching and backoff.
+
+Two contracts are pinned across languages rather than assumed: the packet
+**signing** vector (asserted identically in both suites) and the sync **wire
+format** (`android/data/contract-check.sh` posts Kotlin-generated JSON to a live
+Laravel validator).
 
 ## Field data
 

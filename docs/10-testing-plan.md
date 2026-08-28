@@ -73,6 +73,38 @@ than the test expected, and both properties are now asserted separately.
 - Device clock 40 min fast → corrected delay positive; raw delay would be negative.
 - Uncorrectable case → `clock_anomaly`, excluded from delay statistics.
 
+## 10.2a Device data-layer suite (JVM, `:data`) — 47 tests, all passing
+
+**`ReportRepositoryTest` (14)** — the local-first write path: saving succeeds
+with no network client in existence, identifiers are device-minted, packets are
+signed and verifiable, an unregistered device can still report, a report needs
+nothing but a type, peer reports dedup on `packet_id`, and re-meeting a peer does
+not double-count a handoff.
+
+**`SyncCoordinatorTest` (18)** — priority-before-age ordering, unscored
+life-threatening reports outranking scored LOW ones, batch caps, accepted /
+duplicate / TTL-expired all counting as delivered, permanent rejections retiring
+rather than retrying forever, transport failures leaving everything queued,
+unmentioned packets never assumed delivered, nothing sent while offline, and
+exponential backoff whose jitter spreads retries across devices.
+
+**`DeliveryStateMachineTest` (9)** — evidence-only advancement, and the case that
+matters most: stale mesh evidence cannot reopen a resolved report.
+
+**`WireContractTest` (6)** — snake_case field names, no camelCase leaks,
+ISO-8601 UTC timestamps, lenient response parsing, and unknown statuses treated
+as retryable rather than successful.
+
+### The wire contract is checked against the real validator
+
+`android/data/contract-check.sh` takes the sync request Kotlin actually produces
+and POSTs it to a running Laravel server. The `SyncPacketsRequest` validator gets
+the final say.
+
+This exists because reading two codebases and assuming they agree is precisely
+how the HMAC canonicalisation defect survived undetected — the backend's own
+tests passed, because they shared the bug.
+
 ## 10.3 Mesh test suite (JVM, `:core-mesh`) — 37 tests, all passing
 
 **`RelayScenarioTest` (13)** — one-hop delivery; four-node chain arriving at

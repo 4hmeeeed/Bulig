@@ -5,4 +5,9 @@ rootProject.name = "bulig"
 // docs/06-ble-protocol.md 6.9 for why the relay logic lives outside :app.
 include(":core-mesh")
 
+// Local persistence, the sync client, and the delivery state machine. Also pure
+// Kotlin: Room and Retrofit bindings live in a thin Android adapter layer, so
+// the logic that decides WHAT to sync stays testable without a device.
+include(":data")
+
 // The Android modules (:app, :data) are added once the SDK is available.
