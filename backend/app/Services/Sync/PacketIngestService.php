@@ -146,10 +146,12 @@ class PacketIngestService
             'hop_count' => $data['hop_count'] ?? 0,
             'ttl_remaining' => $data['ttl_remaining'] ?? 0,
             'ttl_initial' => $data['ttl_initial'] ?? 10,
-            'payload_hash' => hash('sha256', json_encode($payload)),
+            // Hash the canonical form, not a JSON dump, so the stored tamper
+            // evidence means the same thing the signature does.
+            'payload_hash' => hash('sha256', CanonicalPacket::build($data)),
             'hmac' => $data['hmac'] ?? null,
             'hmac_valid' => $hmacValid,
-            'payload_bytes' => strlen((string) json_encode($payload)),
+            'payload_bytes' => $data['payload_bytes'] ?? strlen((string) json_encode($payload)),
             'status' => $status,
             'created_at_device' => $this->parseTime($data['created_at_device'] ?? null),
             'received_at_server' => now(),
@@ -254,29 +256,7 @@ class PacketIngestService
             return null;
         }
 
-        $canonical = $this->canonicalPayload($data);
-        $expected = substr(hash_hmac('sha256', $canonical, $key), 0, 32);
-
-        return hash_equals($expected, (string) $provided);
-    }
-
-    /**
-     * The signed representation deliberately excludes ttl_remaining and hop_count:
-     * relays must be able to decrement those without invalidating the origin's
-     * signature. See docs/06-ble-protocol.md 6.7.
-     */
-    private function canonicalPayload(array $data): string
-    {
-        $payload = $data['payload'] ?? [];
-        ksort($payload);
-
-        return implode('|', [
-            $data['packet_id'],
-            $data['emergency_id'],
-            $data['origin_device_id'] ?? '',
-            $data['created_at_device'] ?? '',
-            json_encode($payload),
-        ]);
+        return CanonicalPacket::verify($data, $key, (string) $provided);
     }
 
     private function log(

@@ -86,3 +86,19 @@ Barangay-specific facts — current emergency procedure, population, response
 times, communication tools, connectivity conditions — are marked
 **TO BE VALIDATED** and must come from interviews, observation, and approved
 barangay records. No placeholder statistics are used.
+
+## Android — `:core-mesh`
+
+The store-and-forward relay engine: dedup, TTL, hop count, forwarding policy,
+Bloom-filter anti-entropy, BLE chunk framing, and packet signing. Pure
+Kotlin/JVM with **zero Android imports**, so it builds and tests anywhere —
+including CI with no Android SDK.
+
+```bash
+cd android && gradle :core-mesh:test
+```
+
+Bluetooth cannot be emulated, but relay *logic* does not need a radio.
+`MeshTransport` is an interface that `VirtualMesh` implements in memory and the
+BLE service will implement on-device — which is what turns proposal TESTS 2–5
+into ordinary unit tests.

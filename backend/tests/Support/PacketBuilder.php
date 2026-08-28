@@ -3,6 +3,7 @@
 namespace Tests\Support;
 
 use App\Models\Device;
+use App\Services\Sync\CanonicalPacket;
 use Illuminate\Support\Str;
 
 /**
@@ -83,20 +84,18 @@ class PacketBuilder
         return $this;
     }
 
+    /**
+     * Uses the production canonicaliser deliberately.
+     *
+     * An independent reimplementation here would let the test and the code share
+     * a bug and still agree — which is exactly how the previous JSON-based
+     * canonicalisation hid the fact that Kotlin could never reproduce it. The
+     * cross-language guarantee is pinned by the fixture vector in
+     * CanonicalPacketTest instead.
+     */
     private function computeHmac(string $key): string
     {
-        $payload = $this->data['payload'];
-        ksort($payload);
-
-        $canonical = implode('|', [
-            $this->data['packet_id'],
-            $this->data['emergency_id'],
-            $this->data['origin_device_id'],
-            $this->data['created_at_device'],
-            json_encode($payload),
-        ]);
-
-        return substr(hash_hmac('sha256', $canonical, $key), 0, 32);
+        return CanonicalPacket::sign($this->data, $key);
     }
 
     public function toArray(): array

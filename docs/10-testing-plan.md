@@ -6,20 +6,44 @@ possible — automation proves the protocol, phones prove the physics.
 
 ## 10.1 Proposal test scenarios
 
-| Test | Scenario | Expected | Automated? | Field? |
-|---|---|---|:--:|:--:|
-| 1 | Offline local creation | Emergency stored locally, user sees confirmation | ✓ instrumented Android test | ✓ |
-| 2 | One-hop relay A→B | B stores the packet | ✗ radio | ✓ |
-| 3 | Two-hop relay A→B→C | C receives it, hop=2, TTL=8 | ✓ `VirtualMesh` | ✓ |
-| 4 | Duplicate detection | Exactly one logical emergency | ✓ mesh + server tests | ✓ |
-| 5 | TTL expiration | Forwarding stops at TTL 0; packet still syncable | ✓ `VirtualMesh` | ✓ |
-| 6 | Deferred sync | Offline chain → one device gets signal → reaches MySQL | ✓ server test | ✓ |
-| 7 | Direct online sync | Immediate delivery | ✓ server test | ✓ |
-| 8 | Responder workflow | Assignment received, status transitions recorded | ✓ feature test | ✓ |
+| Test | Scenario | Expected | Automated | Field? |
+|---|---|---|---|:--:|
+| 1 | Offline local creation | Emergency stored locally, user sees confirmation | instrumented Android test (pending) | ✓ |
+| 2 | One-hop relay A→B | B stores the packet | ✅ `one hop relay delivers the packet to a neighbour` | ✓ |
+| 3 | Multi-hop relay A→B→C→D | D receives it, hop=3, TTL=7 | ✅ `packet traverses a four node chain and arrives intact` | ✓ |
+| 4 | Duplicate detection | Exactly one logical emergency | ✅ two tests, one per defence layer, + server tests | ✓ |
+| 5 | TTL expiration | Forwarding stops at TTL 0; packet still syncable | ✅ `forwarding halts when ttl is exhausted` | ✓ |
+| 6 | Deferred sync | Offline chain → one device gets signal → reaches MySQL | ✅ server test | ✓ |
+| 7 | Direct online sync | Immediate delivery | ✅ server test | ✓ |
+| 8 | Responder workflow | Assignment received, status transitions recorded | ✅ `ResponderWorkflowTest` | ✓ |
 
-Tests 2 and 3 cannot be fully automated — BLE has no emulator support. The
-`VirtualMesh` fake covers the *logic*; the phones cover the *radio*. Both results
-are reported.
+**Status: TESTS 2–8 are automated and passing.** 37 Kotlin tests in
+`:core-mesh` and 66 PHP tests in the backend, run with
+`gradle :core-mesh:test` and `php artisan test`.
+
+BLE has no emulator, so the radio itself still needs phones. But the relay
+*protocol* — dedup, TTL, hop accounting, forwarding eligibility — is covered by
+`VirtualMesh`, an in-memory `MeshTransport` that wires N nodes together with a
+configurable topology, loss rate and latency. Field testing therefore measures
+range, interference and battery; it is no longer where correctness is first
+discovered.
+
+### Duplicate detection has two layers, and both are tested
+
+This distinction is worth making explicitly at defense:
+
+1. **Anti-entropy digest (first line).** Peers exchange a Bloom filter of held
+   packet ids before any payload moves, so a redundant copy is normally *never
+   transmitted at all*. Verified by `a packet reaching a node by two routes is
+   never sent twice`.
+2. **Seen-set (second line).** A duplicate can still arrive — Bloom filters have
+   false negatives by construction only in the safe direction, but two peers can
+   be mid-transfer simultaneously. Verified by `a duplicate that reaches a node
+   anyway is recognised and dropped`.
+
+A test asserting only the second layer initially *failed*, because the first
+layer had already prevented the duplicate. That is the system behaving better
+than the test expected, and both properties are now asserted separately.
 
 ## 10.2 Server test suite (Pest/PHPUnit)
 
@@ -49,17 +73,43 @@ are reported.
 - Device clock 40 min fast → corrected delay positive; raw delay would be negative.
 - Uncorrectable case → `clock_anomaly`, excluded from delay statistics.
 
-## 10.3 Mesh test suite (JVM, `:core-mesh`)
+## 10.3 Mesh test suite (JVM, `:core-mesh`) — 37 tests, all passing
 
-`VirtualMesh` builds N nodes with a configurable topology, loss rate, and latency:
+**`RelayScenarioTest` (13)** — one-hop delivery; four-node chain arriving at
+hop 3 / TTL 7 with packet id, payload and signature unchanged; duplicate
+suppression at both layers; TTL exhaustion halting forwarding while the packet
+stays syncable; ring convergence; concurrent emergencies from two origins;
+a 20-node mesh at 30% loss never forking a report; no relay back to the origin;
+battery floor; relay age limit; sync bookkeeping.
 
-- Linear A→B→C→D: packet reaches D at hop 3, TTL 7.
-- Ring topology: no infinite circulation; every node's seen-set stabilises.
-- TTL 2 in a 5-node chain: packet halts at node 3, and is still syncable there.
-- 20 nodes, 30% loss: delivery ratio recorded; no duplicate emergencies anywhere.
-- Bloom-filter false positive: causes a skip, never a duplicate.
-- Chunk reassembly: fragments out of order, fragments lost, peer disconnect
-  mid-transfer → buffer expires cleanly, no leak.
+**`CanonicalPacketTest` (8)** — the cross-language signing vector (below),
+relay-invariant signatures, tamper detection, field-boundary forgery,
+unregistered devices.
+
+**`ChunkFramingTest` (10)** — MTU-sized fragmentation, byte-identical
+reassembly, out-of-order arrival, missing fragments never assembling, abandoned
+transfers expiring rather than leaking, interleaved transfers from two peers,
+version and truncation rejection, CRC corruption detection.
+
+**`BloomDigestTest` (6)** — the never-absent guarantee, false-positive rate
+below 5% at the designed 200-packet load, wire round-trip, defensive copying.
+
+### The cross-language signing vector
+
+The single check that proves a real phone's packets will verify on the server:
+one fixture is signed independently in Kotlin and in PHP, and both must produce
+
+```
+f8c462f8b8f3d32fa09a8431202b448b
+```
+
+The fixture deliberately contains a newline, a forward slash, non-ASCII
+characters, a null field, a negative coordinate, and a value needing rounding —
+every case where two languages' JSON encoders would have diverged.
+
+Without this vector the failure mode is silent: the backend's own tests would
+still pass, because they would share the bug. It would surface only as "the mesh
+doesn't work" during device testing.
 
 ## 10.4 Field test protocol
 

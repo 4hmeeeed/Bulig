@@ -171,20 +171,96 @@ the configured maximum (default 24 h).
 ## 6.7 Integrity: relays cannot tamper
 
 A packet passes through strangers' phones. On registration the server issues each
-device a random 32-byte `hmac_key`. The **origin** device computes
-`HMAC-SHA256(key, header[0..66] excluding ttl/hop || body)` and truncates to 16
-bytes. Mutable fields are excluded from the MAC precisely so relays can legally
-decrement TTL without invalidating it.
+device a random 32-byte `hmac_key`. The **origin** device signs a canonical
+representation of the packet; the server verifies it on ingest.
 
-Relays cannot verify the MAC (they do not hold other devices' keys) — they carry
-it opaquely. The **server** verifies on ingest and records `hmac_valid`. A
-tampered payload is stored with `status = INVALID_HMAC` and surfaced in the
-command center's network monitoring page rather than silently dropped, because
-evidence of tampering is itself operationally interesting.
+Relays cannot verify the MAC — they do not hold other devices' keys — so they
+carry it opaquely. A tampered payload is stored with `status = INVALID_HMAC` and
+surfaced on the command center's network monitoring page rather than silently
+dropped, because evidence of tampering is itself operationally interesting.
 
-This is deliberately modest cryptography for a capstone: it authenticates origin
-and detects modification. It does **not** provide confidentiality on the wire —
-noted in `LIMITATIONS.md`.
+### 6.7.1 The canonical string — a cross-language contract
+
+The signed bytes are **not** a JSON dump. Kotlin cannot reproduce PHP's
+`json_encode` byte-for-byte: PHP escapes forward slashes by default, the two
+languages format floating-point differently, and their Unicode escaping rules
+diverge. Signing a JSON encoding would mean every real device's packets failing
+verification on arrival.
+
+The canonical string is therefore defined explicitly, in a fixed field order:
+
+```
+bulig.canon.v1
+<text>   packet_id
+<text>   emergency_id
+<text>   origin_device_id
+<text>   created_at_device   (epoch milliseconds, as digits)
+<text>   payload.type_code
+<text>   payload.description
+<int>    payload.affected_count
+<int>    payload.children_count
+<int>    payload.elderly_count
+<int>    payload.mobility_limited_count
+<bool>   payload.is_life_threatening
+<text>   payload.vulnerability_notes
+<text>   payload.latitude          (fixed 7 decimal places)
+<text>   payload.longitude         (fixed 7 decimal places)
+<text>   payload.accuracy_m        (fixed 2 decimal places)
+<text>   payload.location_provider
+<text>   payload.captured_at       (epoch milliseconds, as digits)
+```
+
+Fields are joined with `\n`. Encoding rules:
+
+| Type | Rule |
+|---|---|
+| `<text>` | `<utf8ByteLength>:<text>` — length-prefixed |
+| `<int>` | decimal digits, no padding |
+| `<bool>` | `1` or `0` |
+| decimals | rendered to the stated scale, then length-prefixed as text |
+| null / absent | the empty text field, `0:` |
+
+**Why length prefixes.** A description containing a newline would otherwise be
+able to impersonate a field boundary and let two different packets canonicalise
+identically. The prefix makes that impossible, and it is trivial to implement in
+both languages.
+
+**Why epoch milliseconds.** Date *formatting* differs between platforms and
+locales; an instant does not. `2026-08-27T03:52:11Z` and `2026-08-27T11:52:11+08:00`
+are the same packet and must produce the same signature.
+
+**Why coordinates are fixed-scale.** Seven decimal places is roughly 11 mm —
+far beyond any phone GPS. Devices must not send more precision than that.
+
+The MAC is `HMAC-SHA256(device_key, canonical)`, truncated to the first **32 hex
+characters** (16 bytes) for the wire header.
+
+### 6.7.2 What is excluded, and why
+
+`ttl_remaining` and `hop_count` are **deliberately outside** the signed bytes.
+Relays must be able to decrement them without invalidating the origin's
+signature — that is precisely what lets an untrusted phone carry a packet it
+cannot forge.
+
+### 6.7.3 The shared test vector
+
+One fixture is asserted in **both** suites — `CanonicalPacketTest` in PHP and
+`CanonicalPacketTest.kt` in Kotlin — with the same expected MAC. It deliberately
+includes a description containing a newline, a forward slash and non-ASCII
+characters, a null field, a negative coordinate, and an accuracy value requiring
+rounding.
+
+If the two implementations ever drift apart, a test goes red. Without this
+vector, the failure mode is silent: the backend's own tests would still pass
+(they would share the bug), and the problem would surface only as "the mesh
+doesn't work" during device testing.
+
+### 6.7.4 What this does not provide
+
+Authentication of origin and detection of modification — not confidentiality.
+Payloads are **not encrypted** between devices; a BLE sniffer in range could read
+a report in transit. Documented in `LIMITATIONS.md` as future work, not claimed
+as a feature.
 
 ## 6.8 Android platform realities
 
