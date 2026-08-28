@@ -44,6 +44,7 @@ android/     Kotlin/Compose relay + reporting app (next phase)
 | [`LIMITATIONS.md`](docs/LIMITATIONS.md) | Honest scope and known constraints |
 | [`design/HANDOFF.md`](docs/design/HANDOFF.md) | Mobile UI design bundle (12 artboards) |
 | [`design/DESIGN-RECONCILIATION.md`](docs/design/DESIGN-RECONCILIATION.md) | Where the design and the built system agree, differ, and why |
+| [`design/DIAGRAMS-BRIEF.md`](docs/design/DIAGRAMS-BRIEF.md) | Brief for the use case, ERD, and system flowchart diagrams |
 
 ## Running the backend
 
