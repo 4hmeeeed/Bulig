@@ -24,8 +24,12 @@ the final hop.**
 ```
 docs/        System design — architecture, ERD, API contract, BLE protocol, testing plan
 backend/     Laravel 12 REST API + Livewire barangay command center
-android/     Kotlin/Compose relay + reporting app (next phase)
+android/     core-mesh (relay engine) · data (storage + sync) · app (Compose UI)
 ```
+
+The two Kotlin modules that carry the logic are pure JVM and fully tested. The
+Compose module is authored but **not yet compiled** — see
+[`android/BUILDING.md`](android/BUILDING.md).
 
 ## Design documents
 

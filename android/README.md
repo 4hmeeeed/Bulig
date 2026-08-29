@@ -6,7 +6,7 @@
 |---|---|---|
 | `:core-mesh` | **yes** | Store-and-forward relay engine — dedup, TTL, hop count, forwarding policy, Bloom digest, chunk framing, packet signing. **Pure Kotlin/JVM, zero Android imports.** |
 | `:data` | **yes** | Local-first write path, delivery state machine, sync batching and backoff, wire DTOs. **Pure Kotlin/JVM.** Room, Retrofit and WorkManager bindings are thin adapters added with `:app`. |
-| `:app` | not yet | Compose UI, BLE foreground service |
+| `:app` | **no — authored, never compiled** | Compose UI. **Slice 1 only: theme tokens, connectivity banner, chips, Home (artboard 01).** See [BUILDING.md](BUILDING.md). |
 
 `:core-mesh` deliberately has no Android dependency. Bluetooth cannot be
 emulated, but relay *logic* does not need a radio: `MeshTransport` is an

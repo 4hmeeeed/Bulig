@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors BuligColors.Canvas / .Surface for the pre-Compose window. -->
+    <color name="canvas">#F8F9FB</color>
+    <color name="surface">#FFFFFF</color>
+</resources>
