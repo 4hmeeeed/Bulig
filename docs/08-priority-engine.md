@@ -10,7 +10,8 @@ The same formula is implemented twice — Kotlin on the device, PHP on the serve
 driven by identical configuration in `settings.priority_config`.
 
 - **On device:** so a resident sees a priority immediately, offline, and so a
-  relay can prefer forwarding higher-priority packets first.
+  relay can prefer forwarding higher-priority packets first. Implemented in
+  `android/core-mesh/.../priority/PriorityEngine.kt`.
 - **On server:** authoritative. Recomputed on ingest. If the device and server
   results disagree (stale config on an old app build), the server value wins and
   the divergence is logged — which is itself a useful reliability metric.
@@ -90,6 +91,16 @@ re-sorts itself and the change is visible rather than mysterious.
 
 The incident detail page renders this as a plain-language list. This is the
 single highest-value five minutes of a defense demo.
+
+### Parity is checked, not assumed
+
+The two implementations are pinned by the **same four worked examples asserted in
+both suites** — `PriorityEngineTest.php` and `PriorityParityTest.kt`.
+`android/core-mesh/priority-parity-check.sh` runs both and reports together.
+
+Without that, a drift would surface as a resident seeing one priority on their
+phone and an operator seeing a different one on the dashboard, for the same
+emergency — with nothing in either codebase failing.
 
 ## 8.5 Worked examples (these are the unit-test fixtures)
 
