@@ -20,9 +20,16 @@ scan 10 s every 60 s, advertise continuously at `ADVERTISE_MODE_BALANCED`.
 
 ## 6.2 GATT profile
 
-**Service UUID** `b0116000-8bad-4f9a-9c1e-0000bul16000` (placeholder; a final
-random 128-bit UUID is fixed before pilot deployment and must never collide with
-a standard SIG service).
+**Service UUID** `03aa6000-8bad-4f9a-9c1e-1000c0de6000`.
+
+An earlier draft of this document wrote the suffix as `bul16000`. That is not
+hexadecimal, so `UUID.fromString` throws on it and the service would have died
+on its first line — on a device, in a field test, with nothing to say why. The
+UUIDs above are randomly generated and valid. `GattContractTest` now parses
+every one of them, so the defect cannot come back silently.
+
+TO BE VALIDATED: these have not been checked against the Bluetooth SIG's
+assigned-numbers list before pilot deployment.
 
 | Characteristic | UUID suffix | Properties | Purpose |
 |---|---|---|---|
@@ -36,6 +43,42 @@ data: `[protocol_version:1][flags:1][pending_count:2]`. The `flags` byte's bit 0
 is `HAS_INTERNET`. This lets a scanning device **prefer connecting to a peer
 that can actually reach the server** — a one-byte optimisation with an
 outsized effect on delivery time.
+
+### 6.2.1 Readable characteristic layouts
+
+Both are length-explicit and both decode to *nothing* rather than throwing, for
+the same reason: a BLE read can return fewer bytes than were written, and a peer
+running an older build can return bytes we do not understand. Neither is grounds
+for taking down a foreground service that is meant to survive a disaster.
+
+**`NODE_INFO`** (`NodeInfoCodec`):
+
+```
+[version:1][flags:1][pending_count:2][id_length:1][device_id:id_length]
+```
+
+The device id is **length-prefixed, not terminated**, so an id containing any
+byte at all still decodes to exactly itself. A declared length that overruns the
+buffer means a *truncated read*, not a short id — decoding the fragment would
+mint a peer identity out of half a UUID and then trust it for the whole session,
+so the decoder returns null instead. `flags` bit 0 is `HAS_INTERNET`, matching
+the advertisement.
+
+**`DIGEST`** (`DigestCodec`):
+
+```
+[hash_count:1][bloom_bits:n]
+```
+
+The hash count travels with the bits. Probing a filter built with a different
+*k* using our own *k* returns wrong answers in the **unsafe** direction: false
+negatives merely waste airtime, but false positives would silently suppress a
+delivery.
+
+A digest read that returns nothing is treated by the session as an *empty*
+filter — the peer is assumed to hold nothing and is offered everything. That
+risks re-sending, which costs airtime. The opposite assumption would risk never
+sending, which costs a delivery.
 
 ## 6.3 Session flow (anti-entropy)
 
@@ -108,10 +151,26 @@ a description exceeds that. Packets are therefore chunked.
 | 66 | 16 | `hmac` (truncated HMAC-SHA256, first 16 bytes) |
 | 82 | 2 | reserved |
 
-Body is CBOR (compact, schema-free, well-supported on Android) containing type
-code, description, affected/vulnerability counts, lat/lng/accuracy, and the
-life-threatening flag. A typical packet is **220–400 bytes total** — two to
-three fragments at a 247-byte MTU.
+**Body encoding — changed from the original design.** This document originally
+specified CBOR. The implementation (`PacketCodec` in `:core-mesh`) uses a
+field-separated encoding instead: 21 fields in a fixed order, joined by the
+ASCII unit separator `0x1F`, encoded UTF-8.
+
+The reasoning is the same one that forced the HMAC canonicalisation to be
+written out explicitly in §6.7.1. The receiver is a *different device*, possibly
+running a *different build*. A schema-free encoder hides that: two CBOR
+libraries agreeing today is not a property any test in this project can assert,
+whereas a fixed field order is round-tripped by `PacketCodecTest` on every run.
+Free text is stripped of `0x1F` on encode, so a description cannot forge a field
+boundary.
+
+The cost is size — the separated form is larger than CBOR would be. A typical
+packet is **250–450 bytes total**, two to three fragments at a 247-byte MTU.
+That was judged the right trade: the mesh's bottleneck is encounter opportunity,
+not bytes per encounter.
+
+The body still carries the same fields: type code, description,
+affected/vulnerability counts, lat/lng/accuracy, and the life-threatening flag.
 
 Reassembly buffers are keyed by `(peer_address, packet_id)` and discarded after
 a **10-second** inactivity timeout, so a peer that walks out of range mid-transfer

@@ -127,3 +127,46 @@ Those come next, once this compiles.
 
 Tell me it compiled and what you had to change. I will fold the fixes into the
 remaining slices so the same problems are not repeated eleven more times.
+
+## BLE slice — what has and has not seen a compiler
+
+| File | Module | Compiled | Tested |
+|---|---|---|---|
+| `GattContract.kt`, `BleSession.kt`, `CharacteristicCodecs.kt` | `:core-mesh` | yes | 120 tests |
+| `BuligMeshService.kt`, `MeshRadioStatus.kt` | `:app` | **no** | none |
+
+`:app` cannot be compiled in the development container — Google's Android Maven
+mirror is unreachable there, which is why `settings.gradle.kts` only includes
+`:app` when an SDK is present. Everything in `:app` is written against the
+Android documentation and has never been checked by a compiler.
+
+Likely first-build failures in the BLE files, in the order they will appear:
+
+1. **`onCharacteristicRead` signature.** The 4-argument overload with a
+   `ByteArray value` is API 33+. On a `compileSdk` below 33 only the deprecated
+   3-argument form exists, and the override will not resolve. Fix: keep the
+   4-arg override and add the deprecated 3-arg one delegating to it with
+   `characteristic.value`.
+2. **`ADVERTISE_FAILED_FEATURE_UNSUPPORTED`** is a constant on `AdvertiseCallback`;
+   referencing it unqualified inside the anonymous object should work, but if it
+   does not, qualify it as `AdvertiseCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED`.
+3. **`startForeground` on API 34+** requires a `foregroundServiceType` argument
+   and a matching `android:foregroundServiceType="connectedDevice"` in the
+   manifest, plus the `FOREGROUND_SERVICE_CONNECTED_DEVICE` permission.
+4. **Missing permissions annotations.** Lint will flag every Bluetooth call
+   without `@RequiresPermission`. The `SecurityException` catches make these
+   safe at runtime; add `@SuppressLint("MissingPermission")` where lint insists.
+5. **`R.drawable.ic_launcher_foreground`** must exist. If the launcher icon was
+   generated differently, point the notification at whatever icon does exist.
+
+### Deliberately still unwired
+
+- `heldPackets` is always empty: the repository is not connected to the service
+  yet, so the device advertises `pending_count = 0` and offers nothing.
+- The **GATT server role** is not implemented. `BuligMeshService` currently only
+  advertises and acts as a central. Until the server side exists, two Bulig
+  phones can find each other but neither can answer a read — so nothing moves.
+  This is the single largest remaining gap in the BLE work.
+- `ACK` notifications are not subscribed to, so `BleEvent.PacketAcked` is never
+  produced on a device. `BleSession` handles it and is tested for it; nothing
+  yet feeds it.
