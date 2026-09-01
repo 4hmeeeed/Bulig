@@ -39,6 +39,7 @@ import ph.bulig.app.theme.BuligDimens
 import ph.bulig.app.theme.BuligTheme
 import ph.bulig.app.theme.BuligType
 import ph.bulig.mesh.delivery.BannerFormatter
+import ph.bulig.mesh.delivery.BannerPresentation
 import ph.bulig.mesh.delivery.ConnectivityState
 
 /**
@@ -63,8 +64,22 @@ fun ConnectivityBanner(
     count: Int = 0,
     modifier: Modifier = Modifier,
 ) {
-    val presentation = BannerFormatter.present(state, count)
-    val accent = accentFor(state)
+    ConnectivityBanner(BannerFormatter.present(state, count), modifier)
+}
+
+/**
+ * The form that takes a presentation a state factory already built.
+ *
+ * Preferred wherever a screen's state object carries one: recomputing the
+ * banner here from `(state, count)` would mean two places deriving the same
+ * words, and eventually two places disagreeing about them.
+ */
+@Composable
+fun ConnectivityBanner(
+    presentation: BannerPresentation,
+    modifier: Modifier = Modifier,
+) {
+    val accent = accentFor(presentation.state)
 
     Row(
         modifier = modifier

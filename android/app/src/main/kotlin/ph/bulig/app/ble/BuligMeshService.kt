@@ -1,6 +1,7 @@
 package ph.bulig.app.ble
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -21,6 +22,7 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -56,6 +58,11 @@ import ph.bulig.mesh.model.MeshPacket
  *
  * @see docs/06-ble-protocol.md 6.1
  */
+// Every Bluetooth call below is guarded by hasPermissions() at startup and by a
+// SecurityException catch at the call site. Lint cannot see either, so it flags
+// all of them; suppressing once here beats scattering annotations that would
+// suggest the guards are per-call rather than structural.
+@SuppressLint("MissingPermission")
 class BuligMeshService : Service() {
 
     private val serviceUuid = UUID.fromString(GattContract.SERVICE_UUID)
@@ -74,7 +81,7 @@ class BuligMeshService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        startRelayForeground()
 
         if (!hasPermissions()) {
             // Relaying without permission is not possible, and crashing a
@@ -223,6 +230,21 @@ class BuligMeshService : Service() {
             perform(gatt, session.onEvent(BleEvent.MtuNegotiated(mtu)), session)
         }
 
+        /**
+         * The pre-API-33 form. The platform calls exactly one of these two
+         * depending on the device's release, so both must exist or the app
+         * reads nothing at all on older phones.
+         */
+        @Deprecated("Superseded by the ByteArray overload on API 33+")
+        @Suppress("DEPRECATION")
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int,
+        ) {
+            onCharacteristicRead(gatt, characteristic, characteristic.value ?: ByteArray(0), status)
+        }
+
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
@@ -311,6 +333,24 @@ class BuligMeshService : Service() {
     }
 
     // --- housekeeping -----------------------------------------------------
+
+    /**
+     * Starts the foreground notification, with the service type API 34+ demands.
+     *
+     * The type must match the manifest declaration exactly or the platform
+     * throws rather than degrading, so this is not a defensive nicety.
+     */
+    private fun startRelayForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        }
+    }
 
     private fun hasPermissions(): Boolean {
         val required = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

@@ -138,5 +138,7 @@ object BuligType {
     val ChipLabel = 11.sp
     val MonoMeta = 12.sp
     val EmergencyCode = 30.sp
+    /** Artboard 06's confirmation headline. */
+    val ConfirmTitle = 24.sp
     val StepperValue = 22.sp
 }

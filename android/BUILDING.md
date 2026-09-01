@@ -170,3 +170,47 @@ Likely first-build failures in the BLE files, in the order they will appear:
 - `ACK` notifications are not subscribed to, so `BleEvent.PacketAcked` is never
   produced on a device. `BleSession` handles it and is tested for it; nothing
   yet feeds it.
+
+## Slice 2 — the app you can actually tap through
+
+Home → report flow (4 steps) → confirmation → My reports. All wired to the
+tested reducers in `:data`; `BuligViewModel` holds no rules of its own.
+
+### Fixed before you build
+
+`BuligMeshService` was **not declared in the manifest**. `startForegroundService`
+throws on an undeclared service, so the relay could never have started on any
+device — the app would have looked healthy while being unable to do the one
+thing it exists for. Now declared with `foregroundServiceType="connectedDevice"`,
+which API 34+ requires to match the `startForeground` call exactly.
+
+### Known-honest limitations in this build
+
+These are real and deliberate. None of them is hidden behind UI that implies
+otherwise.
+
+| What | Why it matters | Status |
+|---|---|---|
+| **Storage is in memory** | Reports vanish when the app is killed | Room + SQLCipher not wired |
+| **Packets are unsigned** (`PacketSigner(null)`) | The server would reject them as `INVALID_HMAC` | Device key needs registration, which does not exist |
+| **`deviceId` is a fixed string** | Two phones running this build claim the same identity | Needs a persisted per-install id |
+| **No GPS capture** | The location step shows what the flow will report, not a live fix | Not wired |
+| **The mesh service is never started** | No permission request flow yet | Needs a runtime permission prompt |
+| **No GATT server role** | Two phones can find each other; nothing moves between them | Task in progress |
+
+So: this build demonstrates the **resident's flow and the delivery-honesty
+rules** end to end. It does **not** yet demonstrate the mesh actually carrying a
+report between two handsets. That is the next piece of work, and it is the one
+the capstone is actually about.
+
+### Additional likely first-build failures
+
+6. **Material icon names.** `components/EmergencyIcons.kt` is the single most
+   likely file to fail to resolve — `material-icons-extended` does not carry
+   every Material Symbol. Every mapping is in that one function; fix them there.
+7. **`collectAsStateWithLifecycle`** needs
+   `androidx.lifecycle:lifecycle-runtime-compose`, now declared. If the import
+   still fails, check the lifecycle version resolves to 2.8.x.
+8. **`Icons.Filled.ArrowBack`** is deprecated in favour of
+   `Icons.AutoMirrored.Filled.ArrowBack`. It still resolves; if your lint is set
+   to error on deprecation, switch it in `components/Scaffolding.kt`.

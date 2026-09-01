@@ -63,5 +63,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          The relay. Without this declaration startForegroundService throws and
+          the mesh never runs at all - the app would look healthy while being
+          unable to do the one thing it exists for.
+
+          connectedDevice is the type Android requires for a service whose
+          purpose is talking to nearby hardware; declaring anything else on
+          API 34+ is rejected at startForeground time.
+
+          exported="false": nothing outside this app has any business starting
+          a resident's radio.
+        -->
+        <service
+            android:name=".ble.BuligMeshService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 </manifest>
