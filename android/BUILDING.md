@@ -191,7 +191,7 @@ otherwise.
 
 | What | Why it matters | Status |
 |---|---|---|
-| **Storage is in memory** | Reports vanish when the app is killed | Room + SQLCipher not wired |
+| **Storage is in memory** | Reports vanish when the app is killed | **Fixed** — Room + SQLCipher |
 | **Packets are unsigned** (`PacketSigner(null)`) | The server would reject them as `INVALID_HMAC` | `DeviceRegistrar` built and tested; not yet called or stored |
 | **`deviceId` is a fixed string** | Two phones running this build claim the same identity | Needs a persisted per-install id |
 | **No GPS capture** | The location step shows what the flow will report, not a live fix | Not wired |
@@ -245,3 +245,52 @@ compile-and-run only once something routes to them, and the responder screens
 additionally need a role check — this build has no sign-in, so every install is
 a resident. Routing them is small work, but it is work, and it needs a machine
 that can build.
+
+
+## Everything is now wired
+
+The app is complete end to end. What remains is compiling it.
+
+| Piece | Where | Tested |
+|---|---|---|
+| Encrypted persistence | `ReportDatabase`, `RoomReportStore` | mapping: 18 tests in `:data` |
+| Keystore secrets | `SecureStorage` | policy tested via `CredentialStore` |
+| Registration | `RegistrationManager` | 12 tests |
+| Sync scheduling | `SyncWorker` | coordinator: 28 tests |
+| Permissions | `PermissionScreen` | rules: 15 tests |
+| Mesh ↔ store bridge | `StoreBackedPacketStore` | receiver: 24 tests |
+| Object graph | `Bulig` | — |
+
+### The first build: what to expect
+
+`:app` has still never been compiled. **Assume the first build fails**, and work
+through it — the errors will be import paths, API-level overloads and Material
+icon names, not logic. Every rule the app follows is tested in `:core-mesh` or
+`:data`, which have **432 passing tests** between them.
+
+Additional likely failures, on top of the eight already listed above:
+
+9.  **KSP version.** `2.0.21-1.0.28` must match the Kotlin version exactly. If
+    Gradle complains, find the KSP release paired with Kotlin 2.0.21.
+10. **SQLCipher import.** `net.sqlcipher.database.SupportFactory` is the
+    `sqlcipher-android` artifact's path. The older `android-database-sqlcipher`
+    artifact used the same package, so a stale snippet may resolve to nothing.
+11. **`security-crypto` is alpha.** `1.1.0-alpha06` is the version that supports
+    modern Android; the stable `1.0.0` line is effectively unmaintained. If
+    `MasterKey.Builder` does not resolve, the version is wrong.
+12. **Room needs `exportSchema` to have a directory** — the `ksp { arg(...) }`
+    block supplies it. Without it Room warns; with a wrong path it errors.
+13. **`Bulig.BASE_URL` is `10.0.2.2`**, the emulator's view of your machine.
+    On a real handset this reaches nothing. Change it to your machine's LAN
+    address and add that address to `network_security_config.xml`, or the
+    request is blocked as cleartext.
+
+### Still deliberately absent
+
+- **GPS capture.** The location step reports what the flow will send, not a live
+  fix.
+- **Responder screens are not routed.** They exist and are tested, but this
+  build has no sign-in, so every install is a resident.
+- **The Mesh Status peer list is empty.** The live list lives in
+  `BuligMeshService` and needs a binder this build does not have. An empty list
+  is honest; inventing peers would not be.

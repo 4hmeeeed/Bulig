@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext is permitted to exactly one host: the emulator's view of the
+  developer's machine. Everything else, including the barangay's real server,
+  must be HTTPS.
+
+  A blanket `usesCleartextTraffic="true"` would have been one attribute instead
+  of this file, and would also have let a misconfigured pilot deployment send
+  emergency reports in the clear over a barangay's Wi-Fi without anyone noticing.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

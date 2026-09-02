@@ -47,6 +47,11 @@ import ph.bulig.mesh.ble.NodeInfo
 import ph.bulig.mesh.ble.NodeInfoCodec
 import ph.bulig.mesh.ble.PacketReceiver
 import ph.bulig.mesh.metrics.EncounterRecorder
+import ph.bulig.mesh.MeshNode
+import ph.bulig.mesh.store.InMemorySeenSet
+import ph.bulig.mesh.transport.MeshTransport
+import ph.bulig.mesh.transport.PeerHandle
+import ph.bulig.app.Bulig
 import ph.bulig.mesh.model.MeshPacket
 
 /**
@@ -80,8 +85,25 @@ class BuligMeshService : Service() {
     }
     private val adapter: BluetoothAdapter? by lazy { bluetoothManager?.adapter }
 
-    /** Packets this device is carrying. Supplied by the repository once wired. */
-    private var heldPackets: List<MeshPacket> = emptyList()
+    private val bulig by lazy { Bulig.get(this) }
+
+    /**
+     * Packets this device is carrying, re-read from the encrypted store rather
+     * than cached.
+     *
+     * A cached list would go stale the moment a resident filed a report, and a
+     * peer would then be offered yesterday's packets while the urgent one sat on
+     * disk. The read is cheap next to a BLE encounter.
+     */
+    private val heldPackets: List<MeshPacket>
+        get() = try {
+            bulig.store.all().map { it.packet }
+        } catch (e: Exception) {
+            // The database may be locked or unopenable. Relaying nothing is a
+            // degraded service; crashing a foreground service in a disaster is
+            // a failed one.
+            emptyList()
+        }
 
     private val activeSessions = mutableMapOf<String, BleSession>()
 
@@ -91,14 +113,44 @@ class BuligMeshService : Service() {
      * The receive path. Every decision it makes is tested in `:core-mesh`
      * (24 tests); this class only carries bytes to it and notifications back.
      *
-     * **Still null.** Constructing it needs a `MeshNode`, which needs the
-     * persistent store — task 24. Until then the GATT server answers reads and
-     * accepts writes but stores nothing, so a peer's frames are dropped after
-     * arriving. The null check at the write site makes that a no-op rather than
-     * a crash, but it is not the finished state: the mesh is wired end to end
-     * everywhere except this one reference.
+     * The node it writes through persists to the same encrypted database the
+     * resident's own reports live in, so a report carried for a neighbour
+     * survives a reboot exactly as one of your own does.
      */
-    private var receiver: PacketReceiver? = null
+    private val receiver: PacketReceiver? by lazy {
+        try {
+            PacketReceiver(
+                node = MeshNode(
+                    deviceId = ph.bulig.mesh.model.DeviceId(bulig.registration.deviceId()),
+                    store = StoreBackedPacketStore(
+                        reports = bulig.store,
+                        ownDeviceId = ph.bulig.mesh.model.DeviceId(bulig.registration.deviceId()),
+                    ),
+                    // In memory deliberately: the seen-set is an optimisation
+                    // for this session, and the durable duplicate check is the
+                    // store's own packet_id primary key.
+                    seen = InMemorySeenSet(),
+                    transport = InertTransport,
+                ),
+                // A relay cannot hold other devices' keys, so it cannot
+                // adjudicate a stranger's signature — see 06-ble-protocol 6.5.1.
+                verify = { ph.bulig.mesh.ble.Verification.UNKNOWN_KEY },
+                hasCapacity = { bulig.store.count() < MAX_STORED_PACKETS },
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * The relay drives its own connections; the node never asks a transport to
+     * discover anything, so this satisfies the interface and does nothing.
+     */
+    private object InertTransport : MeshTransport {
+        override fun discoverPeers(): List<PeerHandle> = emptyList()
+        override fun requestDigest(peer: PeerHandle) = null
+        override fun send(peer: PeerHandle, packet: MeshPacket) = false
+    }
 
     /** Peers that subscribed to ACK notifications, by address. */
     private val ackSubscribers = mutableSetOf<String>()
@@ -699,6 +751,18 @@ class BuligMeshService : Service() {
          * Fine for a capstone prototype, not for anything published.
          */
         private const val MANUFACTURER_ID = 0xFFFF
+
+        /**
+         * How many packets this device will hold for other people.
+         *
+         * A cap rather than unlimited: a phone that fills its storage relaying
+         * cannot file its owner's own emergency, which would invert the whole
+         * point. Past this the receiver answers NO_CAPACITY, which senders are
+         * built to back off from rather than treat as a permanent refusal.
+         *
+         * TO BE VALIDATED against real storage during the field test.
+         */
+        private const val MAX_STORED_PACKETS = 2_000
 
         /**
          * The Bluetooth SIG's Client Characteristic Configuration descriptor.
