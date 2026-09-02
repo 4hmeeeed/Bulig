@@ -215,3 +215,33 @@ the capstone is actually about.
 8. **`Icons.Filled.ArrowBack`** is deprecated in favour of
    `Icons.AutoMirrored.Filled.ArrowBack`. It still resolves; if your lint is set
    to error on deprecation, switch it in `components/Scaffolding.kt`.
+
+
+## Screen coverage
+
+All 12 artboards now have a screen. Every one renders a state object built by a
+tested factory in `:data`; no screen file decides what a resident or responder
+is told.
+
+| Artboard | Screen | State factory | Tests |
+|---|---|---|---|
+| 01 | `HomeScreen` | `HomeStateFactory` | yes |
+| 02–06 | `ReportFlowScreen` | `ReportFlowReducer` | yes |
+| 07 | `MyReportsScreen` | `MyReportsStateFactory` | yes |
+| 08 | `ReportDetailScreen` | `ReportDetailStateFactory` | yes |
+| 09 | `MeshStatusScreen` | `MeshStatusStateFactory` | yes |
+| 10 | `AssignmentListScreen` | `AssignmentListStateFactory` | yes |
+| 11 | `AssignmentDetailScreen` | `AssignmentDetailStateFactory` | yes |
+| 12 | action bar in `AssignmentScreens` | `ActionBarStateFactory` | yes |
+
+Still true, and the reason this table is not a completion claim: **`:app` has
+never been compiled.** The state layers behind these screens have 367 passing
+tests; the screens themselves have none and cannot have any here.
+
+### Not yet routed
+
+`MainActivity` navigates Home → report flow → My reports. The four new screens
+compile-and-run only once something routes to them, and the responder screens
+additionally need a role check — this build has no sign-in, so every install is
+a resident. Routing them is small work, but it is work, and it needs a machine
+that can build.

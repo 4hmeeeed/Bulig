@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -99,6 +100,7 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     container: Color = BuligColors.BrandStrong,
+    icon: ImageVector? = null,
 ) {
     Button(
         onClick = onClick,
@@ -114,7 +116,21 @@ fun PrimaryButton(
             .fillMaxWidth()
             .height(BuligDimens.PrimaryButtonHeight),
     ) {
-        Text(text = text, fontSize = BuligType.Body, fontWeight = FontWeight.SemiBold)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BuligDimens.GapSmall),
+        ) {
+            icon?.let {
+                Icon(
+                    imageVector = it,
+                    // The label says the same thing; announcing both would make
+                    // a screen reader repeat itself.
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Text(text = text, fontSize = BuligType.Body, fontWeight = FontWeight.SemiBold)
+        }
     }
 }
 
