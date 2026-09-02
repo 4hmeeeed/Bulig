@@ -12,6 +12,11 @@ import kotlinx.coroutines.withContext
 import ph.bulig.app.ble.BuligMeshService
 import ph.bulig.app.sync.SyncWorker
 import ph.bulig.data.model.LocalReport
+import ph.bulig.data.auth.AppMode
+import ph.bulig.data.auth.LoginFailure
+import ph.bulig.data.auth.SignInResult
+import ph.bulig.data.location.LocationPolicy
+import ph.bulig.data.location.LocationUiState
 import ph.bulig.data.presentation.CountField
 import ph.bulig.data.presentation.EmergencyTypeCatalog
 import ph.bulig.data.presentation.HomeStateFactory
@@ -31,7 +36,10 @@ import ph.bulig.data.repository.SaveResult
 import ph.bulig.mesh.model.PacketId
 
 /** Which screen is showing. */
-enum class Destination { PERMISSIONS, HOME, REPORT_FLOW, MY_REPORTS, REPORT_DETAIL, MESH_STATUS }
+enum class Destination {
+    PERMISSIONS, HOME, REPORT_FLOW, MY_REPORTS, REPORT_DETAIL, MESH_STATUS,
+    LOGIN, ASSIGNMENTS, ASSIGNMENT_DETAIL,
+}
 
 /**
  * The one stateful object in `:app`.
@@ -77,6 +85,20 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
     private val _permissions = MutableStateFlow<PermissionUiState?>(null)
     val permissions: StateFlow<PermissionUiState?> = _permissions.asStateFlow()
 
+    private val _mode = MutableStateFlow<AppMode>(AppMode.Resident)
+    val mode: StateFlow<AppMode> = _mode.asStateFlow()
+
+    private val _loginFailure = MutableStateFlow<LoginFailure?>(null)
+    val loginFailure: StateFlow<LoginFailure?> = _loginFailure.asStateFlow()
+
+    private val _isSigningIn = MutableStateFlow(false)
+    val isSigningIn: StateFlow<Boolean> = _isSigningIn.asStateFlow()
+
+    private val _location = MutableStateFlow(
+        LocationPolicy.build(null, isSearching = false, nowMs = System.currentTimeMillis())
+    )
+    val location: StateFlow<LocationUiState> = _location.asStateFlow()
+
     init {
         refresh()
         // Opportunistic and non-blocking: a phone that cannot register still
@@ -93,6 +115,11 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openMyReports() = go(Destination.MY_REPORTS)
+    fun openLogin() {
+        _loginFailure.value = null
+        _destination.value = Destination.LOGIN
+    }
+    fun openAssignments() = go(Destination.ASSIGNMENTS)
     fun openMesh() = go(Destination.MESH_STATUS)
     fun goHome() = go(Destination.HOME)
 
@@ -134,7 +161,14 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
     fun adjust(field: CountField, delta: Int) { _flow.value = ReportFlowReducer.adjust(_flow.value, field, delta) }
     fun setDescription(text: String) { _flow.value = ReportFlowReducer.setDescription(_flow.value, text) }
     fun setLifeThreatening(value: Boolean) { _flow.value = ReportFlowReducer.setLifeThreatening(_flow.value, value) }
-    fun next() { _flow.value = ReportFlowReducer.next(_flow.value, System.currentTimeMillis()) }
+    fun next() {
+        _flow.value = ReportFlowReducer.next(_flow.value, System.currentTimeMillis())
+
+        // The fix is asked for on arrival at the step rather than at launch: a
+        // resident who never files a report should never have the GPS radio
+        // turned on for them.
+        if (_flow.value.step == ReportStep.LOCATION) requestLocation()
+    }
     fun back() { _flow.value = ReportFlowReducer.back(_flow.value) }
     fun jumpTo(step: ReportStep) { _flow.value = ReportFlowReducer.jumpTo(_flow.value, step) }
 
@@ -208,6 +242,95 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
                 isRadioActive = ph.bulig.app.ble.MeshRadioStatus.canAdvertise.value,
             )
         }
+    }
+
+    // --- responder sign-in --------------------------------------------------
+
+    /**
+     * Signs a responder in, and never blocks the resident experience on it.
+     *
+     * A failure leaves [mode] where it was — which for anybody who has not
+     * signed in is [AppMode.Resident], with the report flow fully intact.
+     */
+    fun signIn(email: String, password: String) {
+        if (_isSigningIn.value) return
+
+        _isSigningIn.value = true
+        _loginFailure.value = null
+
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) { bulig.sessions.signIn(email, password) }
+
+            _isSigningIn.value = false
+
+            when (result) {
+                is SignInResult.Success -> {
+                    _mode.value = result.mode
+                    _destination.value = when (result.mode) {
+                        is AppMode.Responder -> Destination.ASSIGNMENTS
+                        else -> Destination.HOME
+                    }
+                }
+
+                is SignInResult.Failed -> _loginFailure.value = result.failure
+            }
+        }
+    }
+
+    fun signOut() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { bulig.sessions.signOut() }
+            _mode.value = AppMode.Resident
+            goHome()
+        }
+    }
+
+    // --- location -----------------------------------------------------------
+
+    /**
+     * Asks for a fix, showing the cached one immediately if there is a usable
+     * one.
+     *
+     * Never blocks the flow: [LocationUiState.canContinue] is always true, and a
+     * resident who moves on before a fix arrives simply sends a report without
+     * one.
+     */
+    fun requestLocation() {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+
+            val cached = withContext(Dispatchers.IO) { bulig.location.lastKnownFix() }
+            if (cached != null && !LocationPolicy.isStale(cached, now)) {
+                _location.value = LocationPolicy.build(cached, isSearching = true, nowMs = now)
+                applyFix(cached)
+            } else {
+                _location.value = LocationPolicy.build(null, isSearching = true, nowMs = now)
+            }
+
+            val fresh = withContext(Dispatchers.IO) { bulig.location.currentFix() }
+            val settledAt = System.currentTimeMillis()
+
+            val held = _location.value.fix
+            val chosen = when {
+                fresh == null -> held
+                LocationPolicy.shouldReplace(held, fresh, settledAt) -> fresh
+                else -> held
+            }
+
+            _location.value = LocationPolicy.build(chosen, isSearching = false, nowMs = settledAt)
+            chosen?.let { applyFix(it) }
+        }
+    }
+
+    private fun applyFix(fix: ph.bulig.data.location.LocationFix) {
+        _flow.value = ReportFlowReducer.setLocation(
+            state = _flow.value,
+            latitude = fix.latitude,
+            longitude = fix.longitude,
+            accuracyM = fix.accuracyM,
+            provider = fix.provider,
+            capturedAtMs = fix.capturedAtMs,
+        )
     }
 
     private fun newFlow() = ReportFlowState(types = EmergencyTypeCatalog.all, isOnline = false)

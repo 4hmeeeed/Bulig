@@ -285,12 +285,23 @@ Additional likely failures, on top of the eight already listed above:
     address and add that address to `network_security_config.xml`, or the
     request is blocked as cleartext.
 
-### Still deliberately absent
+### Previously absent, now built
 
-- **GPS capture.** The location step reports what the flow will send, not a live
-  fix.
-- **Responder screens are not routed.** They exist and are tested, but this
-  build has no sign-in, so every install is a resident.
-- **The Mesh Status peer list is empty.** The live list lives in
-  `BuligMeshService` and needs a binder this build does not have. An empty list
-  is honest; inventing peers would not be.
+- **GPS capture** — `FusedLocationSource` plus `LocationPolicy` (18 tests). The
+  fused provider rather than raw `LocationManager`, because it fuses GPS,
+  network and sensors, which is what produces a fix indoors and under cover.
+- **Responder sign-in** — `AuthApi`, `SessionManager` (24 tests), `LoginScreen`,
+  and routing to the assignment queue.
+- **Mesh Status peers** — `BuligMeshService.LocalBinder` exposes the live peer
+  list and the encounter statistics.
+
+### Still absent, and why
+
+- **The assignment queue is empty.** Sign-in works and the screen renders, but
+  fetching `GET /api/v1/assignments` needs a client like `HttpSyncApi`. An empty
+  queue is honest until that exists; inventing assignments would not be.
+- **The Mesh Status screen does not yet bind to the service.** The binder exists
+  and publishes peers; `BuligViewModel` still passes an empty list because
+  binding needs a `ServiceConnection` lifecycle the ViewModel does not own.
+- **Assignment detail is not routed.** It redirects to the queue until the queue
+  has something in it.

@@ -30,6 +30,7 @@ import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Binder
 import android.os.IBinder
 import android.os.ParcelUuid
 import androidx.core.app.NotificationCompat
@@ -47,6 +48,12 @@ import ph.bulig.mesh.ble.NodeInfo
 import ph.bulig.mesh.ble.NodeInfoCodec
 import ph.bulig.mesh.ble.PacketReceiver
 import ph.bulig.mesh.metrics.EncounterRecorder
+import ph.bulig.mesh.metrics.EncounterStats
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import ph.bulig.data.presentation.LinkQuality
+import ph.bulig.data.presentation.NearbyPeer
 import ph.bulig.mesh.MeshNode
 import ph.bulig.mesh.store.InMemorySeenSet
 import ph.bulig.mesh.transport.MeshTransport
@@ -161,7 +168,34 @@ class BuligMeshService : Service() {
      */
     private val encounters = EncounterRecorder()
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    /**
+     * Lets the Mesh Status screen see what the radio is actually doing.
+     *
+     * A local binder rather than a broadcast or a singleton: the peer list is
+     * only meaningful while this service is alive, and binding makes that
+     * lifetime explicit instead of leaving a stale list on a screen after the
+     * relay has stopped.
+     */
+    inner class LocalBinder : Binder() {
+        val peers: StateFlow<List<NearbyPeer>> get() = nearbyPeers.asStateFlow()
+        fun stats(): EncounterStats = encounters.snapshot()
+        val isRelaying: Boolean get() = gattServer != null
+    }
+
+    private val binder = LocalBinder()
+
+    override fun onBind(intent: Intent?): IBinder = binder
+
+    /**
+     * Peers seen recently, as the resident's screen shows them.
+     *
+     * Keyed by transport address and pruned on disconnect, so a phone that
+     * walked away stops being listed. Showing a peer that has gone would be the
+     * same class of untruth as a premature delivery tick.
+     */
+    private val nearbyPeers = MutableStateFlow<List<NearbyPeer>>(emptyList())
+
+    private val seenPeers = linkedMapOf<String, NearbyPeer>()
 
     override fun onCreate() {
         super.onCreate()
@@ -384,6 +418,7 @@ class BuligMeshService : Service() {
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
             if (newState != BluetoothGatt.STATE_CONNECTED) {
                 ackSubscribers -= device.address
+                forgetPeer(device.address)
                 // Frees any half-received message the departing peer left behind.
                 receiver?.onPeerDisconnected(System.currentTimeMillis())
             }
@@ -490,6 +525,8 @@ class BuligMeshService : Service() {
                 peer = ph.bulig.mesh.model.DeviceId(result.device.address),
                 nowMs = System.currentTimeMillis(),
             )
+
+            rememberPeer(result.device.address, advert, result.rssi)
 
             connectTo(result.device)
         }
@@ -732,6 +769,41 @@ class BuligMeshService : Service() {
 
     /** Read by the evaluation build; see docs/10-testing-plan.md 10.5. */
     fun encounterStats() = encounters.snapshot()
+
+    /**
+     * Records a peer for the Mesh Status screen.
+     *
+     * The pseudonym is the last four characters of the transport address, which
+     * Android already randomises per session for privacy — so it identifies a
+     * peer within one encounter without being traceable across days, which is
+     * exactly what the screen promises.
+     */
+    private fun rememberPeer(address: String, advert: AdvertisementPayload, rssi: Int) {
+        val pseudonym = "phone-" + address.filter { it.isLetterOrDigit() }.takeLast(4).uppercase()
+
+        seenPeers[address] = NearbyPeer(
+            pseudonym = pseudonym,
+            // Thresholds are rough on purpose: RSSI is not a distance, and
+            // presenting it as one would invite a resident to walk the wrong way.
+            linkQuality = when {
+                rssi >= -70 -> LinkQuality.STRONG
+                rssi >= -90 -> LinkQuality.WEAK
+                else -> LinkQuality.UNKNOWN
+            },
+            // A peer that can reach the server is zero hops from signal; one
+            // that cannot has not told us how far it is, and guessing would be
+            // inventing evidence.
+            hopsFromSignal = if (advert.hasInternet) 0 else null,
+            hasInternet = advert.hasInternet,
+        )
+
+        nearbyPeers.value = seenPeers.values.toList()
+    }
+
+    private fun forgetPeer(address: String) {
+        seenPeers.remove(address)
+        nearbyPeers.value = seenPeers.values.toList()
+    }
 
     override fun onDestroy() {
         super.onDestroy()

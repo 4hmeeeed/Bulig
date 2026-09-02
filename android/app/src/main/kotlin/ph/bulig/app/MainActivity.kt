@@ -26,7 +26,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ph.bulig.app.screens.AssignmentListScreen
 import ph.bulig.app.screens.HomeScreen
+import ph.bulig.app.screens.LoginScreen
 import ph.bulig.app.screens.MeshStatusScreen
 import ph.bulig.app.screens.MyReportsScreen
 import ph.bulig.app.screens.PermissionScreen
@@ -34,6 +36,8 @@ import ph.bulig.app.screens.ReportDetailScreen
 import ph.bulig.app.screens.ReportFlowScreen
 import ph.bulig.app.theme.BuligColors
 import ph.bulig.app.theme.BuligTheme
+import ph.bulig.data.auth.AppMode
+import ph.bulig.data.presentation.AssignmentListStateFactory
 import ph.bulig.data.presentation.MeshPermission
 import ph.bulig.data.presentation.PermissionStateFactory
 import ph.bulig.data.presentation.PermissionUiState
@@ -42,13 +46,14 @@ import ph.bulig.data.presentation.ReportStep
 /**
  * The whole resident app.
  *
- * No navigation library: six destinations with one back edge each do not justify
- * a back stack, and a nav graph would be another place for the report flow's
- * state to be lost on a configuration change.
+ * No navigation library: a handful of destinations with one back edge each do
+ * not justify a back stack, and a nav graph would be another place for the
+ * report flow's state to be lost on a configuration change.
  *
- * The responder screens exist and are tested but are not routed here. This build
- * has no sign-in, so every install is a resident — showing a responder queue to
- * somebody with no assignments would be worse than not showing it at all.
+ * **A resident never signs in.** Sign-in exists only for responders, is reached
+ * only by a deliberate tap, and is never in anybody's way — requiring an account
+ * to report an emergency would put a network call in front of the one action
+ * that must work with no network at all.
  */
 class MainActivity : ComponentActivity() {
 
@@ -184,10 +189,16 @@ private fun BuligApp(viewModel: BuligViewModel = viewModel()) {
         Destination.HOME -> {
             val state by viewModel.home.collectAsStateWithLifecycle()
 
+            val mode by viewModel.mode.collectAsStateWithLifecycle()
+
             HomeScreen(
                 state = state,
                 onReportEmergency = viewModel::startReport,
-                onOpenMesh = viewModel::openMesh,
+                // A signed-in responder's mesh affordance takes them to their
+                // queue instead; everyone else sees the mesh status they own.
+                onOpenMesh = {
+                    if (mode is AppMode.Responder) viewModel.openAssignments() else viewModel.openMesh()
+                },
                 onOpenReport = { viewModel.openReport(it.packetId) },
             )
         }
@@ -239,6 +250,48 @@ private fun BuligApp(viewModel: BuligViewModel = viewModel()) {
             val state by viewModel.mesh.collectAsStateWithLifecycle()
 
             MeshStatusScreen(state = state, onBack = viewModel::goHome)
+        }
+
+        Destination.LOGIN -> {
+            val failure by viewModel.loginFailure.collectAsStateWithLifecycle()
+            val working by viewModel.isSigningIn.collectAsStateWithLifecycle()
+
+            LoginScreen(
+                onSignIn = viewModel::signIn,
+                onBack = viewModel::goHome,
+                isWorking = working,
+                failure = failure,
+            )
+        }
+
+        Destination.ASSIGNMENTS -> {
+            val mode by viewModel.mode.collectAsStateWithLifecycle()
+            val responder = mode as? AppMode.Responder
+
+            if (responder == null) {
+                // Signed out from another screen, or a token expired. Home is
+                // the safe place: it is the one that still lets somebody report.
+                LaunchedEffect(Unit) { viewModel.goHome() }
+            } else {
+                AssignmentListScreen(
+                    state = AssignmentListStateFactory.build(
+                        responderName = responder.session.name,
+                        zone = responder.session.badgeNo,
+                        // TO BE WIRED: assignments come from
+                        // GET /api/v1/assignments, which needs a client like
+                        // HttpSyncApi. An empty queue is honest until it exists;
+                        // inventing assignments would not be.
+                        assignments = emptyList(),
+                        nowMs = System.currentTimeMillis(),
+                    ),
+                    onOpen = { /* detail routing arrives with the real queue */ },
+                    onBack = viewModel::goHome,
+                )
+            }
+        }
+
+        Destination.ASSIGNMENT_DETAIL -> {
+            LaunchedEffect(Unit) { viewModel.openAssignments() }
         }
     }
 }

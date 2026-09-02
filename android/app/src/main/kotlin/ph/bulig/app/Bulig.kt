@@ -6,7 +6,11 @@ import android.net.NetworkCapabilities
 import androidx.core.content.ContextCompat
 import ph.bulig.app.store.ReportDatabase
 import ph.bulig.app.store.RoomReportStore
+import ph.bulig.app.location.FusedLocationSource
 import ph.bulig.app.store.SecureStorage
+import ph.bulig.data.auth.AuthApi
+import ph.bulig.data.auth.InMemorySessionStore
+import ph.bulig.data.auth.SessionManager
 import ph.bulig.data.delivery.DeliveryStateMachine
 import ph.bulig.data.registration.RegistrationManager
 import ph.bulig.data.repository.ReportRepository
@@ -69,6 +73,20 @@ class Bulig(private val context: Context) {
     }
 
     val deliveryStateMachine: DeliveryStateMachine by lazy { DeliveryStateMachine(store) }
+
+    val location: FusedLocationSource by lazy { FusedLocationSource(context) }
+
+    /**
+     * Responder sign-in.
+     *
+     * The session store is in memory on purpose. A responder's token is the
+     * most sensitive thing this app holds after the signing key, and a phone
+     * handed to somebody else between shifts should not still be signed in.
+     * Signing in once per session is a small cost; residents never do it at all.
+     */
+    val sessions: SessionManager by lazy {
+        SessionManager(api = AuthApi(syncConfig()), store = InMemorySessionStore())
+    }
 
     /**
      * Rebuilt per sync rather than held, because the device token changes when

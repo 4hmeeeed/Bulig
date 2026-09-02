@@ -85,6 +85,11 @@ dependencies {
 
     // Runs the tested SyncCoordinator when connectivity returns.
     implementation("androidx.work:work-runtime-ktx:2.10.0")
+
+    // GPS. The fused provider rather than raw LocationManager: it fuses GPS,
+    // network and sensors, which matters indoors and under cover — exactly the
+    // conditions a resident on a roof during a flood is in.
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     // Declared explicitly rather than leant on transitively: MeshRadioStatus
     // exposes a StateFlow from a plain object, outside any Compose or
     // lifecycle scope that would otherwise be supplying it.
