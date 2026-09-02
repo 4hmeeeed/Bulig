@@ -11,6 +11,10 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothGattServer
+import android.bluetooth.BluetoothGattServerCallback
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
@@ -38,7 +42,10 @@ import ph.bulig.mesh.ble.BleEvent
 import ph.bulig.mesh.ble.BleSession
 import ph.bulig.mesh.ble.DigestCodec
 import ph.bulig.mesh.ble.GattContract
+import ph.bulig.mesh.ble.InboundResult
+import ph.bulig.mesh.ble.NodeInfo
 import ph.bulig.mesh.ble.NodeInfoCodec
+import ph.bulig.mesh.ble.PacketReceiver
 import ph.bulig.mesh.model.MeshPacket
 
 /**
@@ -77,6 +84,24 @@ class BuligMeshService : Service() {
 
     private val activeSessions = mutableMapOf<String, BleSession>()
 
+    private var gattServer: BluetoothGattServer? = null
+
+    /**
+     * The receive path. Every decision it makes is tested in `:core-mesh`
+     * (24 tests); this class only carries bytes to it and notifications back.
+     *
+     * **Still null.** Constructing it needs a `MeshNode`, which needs the
+     * persistent store — task 24. Until then the GATT server answers reads and
+     * accepts writes but stores nothing, so a peer's frames are dropped after
+     * arriving. The null check at the write site makes that a no-op rather than
+     * a crash, but it is not the finished state: the mesh is wired end to end
+     * everywhere except this one reference.
+     */
+    private var receiver: PacketReceiver? = null
+
+    /** Peers that subscribed to ACK notifications, by address. */
+    private val ackSubscribers = mutableSetOf<String>()
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -90,6 +115,7 @@ class BuligMeshService : Service() {
             return
         }
 
+        startGattServer()
         startAdvertising()
         startScanning()
     }
@@ -151,6 +177,215 @@ class BuligMeshService : Service() {
     private fun onAdvertisingUnsupported() {
         MeshRadioStatus.reportAdvertisingUnsupported()
     }
+
+    // --- GATT server (the receive path) -----------------------------------
+
+    /**
+     * Hosts the four characteristics so a peer that connects has something to
+     * read and somewhere to write.
+     *
+     * Without this the device advertises, gets connected to, and then answers
+     * nothing — two Bulig phones would find each other and exchange no reports
+     * at all. Advertising without a server is the mesh's most convincing way of
+     * looking healthy while doing nothing.
+     */
+    private fun startGattServer() {
+        val manager = bluetoothManager ?: return
+
+        val server = try {
+            manager.openGattServer(this, gattServerCallback)
+        } catch (e: SecurityException) {
+            null
+        } ?: return
+
+        val service = BluetoothGattService(serviceUuid, BluetoothGattService.SERVICE_TYPE_PRIMARY)
+
+        service.addCharacteristic(
+            BluetoothGattCharacteristic(
+                UUID.fromString(GattContract.CHAR_NODE_INFO),
+                BluetoothGattCharacteristic.PROPERTY_READ,
+                BluetoothGattCharacteristic.PERMISSION_READ,
+            )
+        )
+        service.addCharacteristic(
+            BluetoothGattCharacteristic(
+                UUID.fromString(GattContract.CHAR_DIGEST),
+                BluetoothGattCharacteristic.PROPERTY_READ or
+                    BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+                BluetoothGattCharacteristic.PERMISSION_READ,
+            )
+        )
+        service.addCharacteristic(
+            BluetoothGattCharacteristic(
+                UUID.fromString(GattContract.CHAR_PACKET_IN),
+                BluetoothGattCharacteristic.PROPERTY_WRITE or
+                    BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
+                BluetoothGattCharacteristic.PERMISSION_WRITE,
+            )
+        )
+
+        // ACK carries the per-packet verdict back, so the sender knows whether
+        // to stop offering a packet to this peer. A notify characteristic needs
+        // the standard Client Characteristic Configuration descriptor or no
+        // peer can ever subscribe to it.
+        val ack = BluetoothGattCharacteristic(
+            UUID.fromString(GattContract.CHAR_ACK),
+            BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+            BluetoothGattCharacteristic.PERMISSION_READ,
+        )
+        ack.addDescriptor(
+            BluetoothGattDescriptor(
+                CCC_DESCRIPTOR_UUID,
+                BluetoothGattDescriptor.PERMISSION_READ or
+                    BluetoothGattDescriptor.PERMISSION_WRITE,
+            )
+        )
+        service.addCharacteristic(ack)
+
+        try {
+            server.addService(service)
+        } catch (e: SecurityException) {
+            return
+        }
+
+        gattServer = server
+    }
+
+    private val gattServerCallback = object : BluetoothGattServerCallback() {
+
+        override fun onCharacteristicReadRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            offset: Int,
+            characteristic: BluetoothGattCharacteristic,
+        ) {
+            val value = when (characteristic.uuid.toString().lowercase()) {
+                GattContract.CHAR_NODE_INFO.lowercase() -> NodeInfoCodec.encode(nodeInfo())
+                GattContract.CHAR_DIGEST.lowercase() -> DigestCodec.encode(currentDigest())
+                else -> ByteArray(0)
+            }
+
+            // A long value is read in slices; the peer asks again with a higher
+            // offset until it has all of it. Ignoring the offset would send the
+            // same first slice forever.
+            val slice = if (offset >= value.size) ByteArray(0) else value.copyOfRange(offset, value.size)
+
+            respond(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, slice)
+        }
+
+        override fun onCharacteristicWriteRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            characteristic: BluetoothGattCharacteristic,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray,
+        ) {
+            if (responseNeeded) {
+                respond(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, null)
+            }
+
+            if (!characteristic.uuid.toString().equals(GattContract.CHAR_PACKET_IN, true)) return
+
+            val outcome = receiver?.onFrameWritten(
+                peer = device.address,
+                frame = value,
+                nowMs = System.currentTimeMillis(),
+            ) ?: return
+
+            // Buffering means the message is still arriving — there is nothing
+            // truthful to acknowledge yet.
+            if (outcome is InboundResult.Acknowledge) {
+                notifyAck(device, outcome.code.wire)
+            }
+        }
+
+        override fun onDescriptorWriteRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            descriptor: BluetoothGattDescriptor,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray,
+        ) {
+            if (descriptor.uuid == CCC_DESCRIPTOR_UUID) {
+                val enabling = value.contentEquals(
+                    BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                )
+                if (enabling) ackSubscribers += device.address else ackSubscribers -= device.address
+            }
+
+            if (responseNeeded) {
+                respond(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, null)
+            }
+        }
+
+        override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
+            if (newState != BluetoothGatt.STATE_CONNECTED) {
+                ackSubscribers -= device.address
+                // Frees any half-received message the departing peer left behind.
+                receiver?.onPeerDisconnected(System.currentTimeMillis())
+            }
+        }
+    }
+
+    private fun respond(
+        device: BluetoothDevice,
+        requestId: Int,
+        status: Int,
+        offset: Int,
+        value: ByteArray?,
+    ) {
+        try {
+            gattServer?.sendResponse(device, requestId, status, offset, value)
+        } catch (e: SecurityException) {
+            // Permission revoked mid-session. The peer times out, which is a
+            // state BLE senders already handle.
+        }
+    }
+
+    /** Sends one packet's verdict back to the peer that wrote it. */
+    private fun notifyAck(device: BluetoothDevice, code: Byte) {
+        if (device.address !in ackSubscribers) return
+
+        val characteristic = gattServer
+            ?.getService(serviceUuid)
+            ?.getCharacteristic(UUID.fromString(GattContract.CHAR_ACK))
+            ?: return
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                gattServer?.notifyCharacteristicChanged(device, characteristic, false, byteArrayOf(code))
+            } else {
+                @Suppress("DEPRECATION")
+                characteristic.value = byteArrayOf(code)
+                @Suppress("DEPRECATION")
+                gattServer?.notifyCharacteristicChanged(device, characteristic, false)
+            }
+        } catch (e: SecurityException) {
+            // As above: the sender's own timeout handles it.
+        }
+    }
+
+    /**
+     * What this device tells a peer about itself.
+     *
+     * TO BE WIRED: [deviceId] must come from the persisted per-install
+     * identifier once registration exists. A constant here would make every
+     * install claim the same identity.
+     */
+    private fun nodeInfo() = NodeInfo(
+        deviceId = ph.bulig.mesh.model.DeviceId("dev-local-prototype"),
+        protocolVersion = GattContract.PROTOCOL_VERSION,
+        hasInternet = hasInternet(),
+        pendingCount = heldPackets.size,
+    )
+
+    /** What this device already holds, so a peer does not offer it twice. */
+    private fun currentDigest() =
+        ph.bulig.mesh.digest.BloomDigest.of(heldPackets.map { it.packetId })
 
     // --- central role -----------------------------------------------------
 
@@ -420,6 +655,7 @@ class BuligMeshService : Service() {
         try {
             adapter?.bluetoothLeAdvertiser?.stopAdvertising(advertiseCallback)
             adapter?.bluetoothLeScanner?.stopScan(scanCallback)
+            gattServer?.close()
         } catch (e: SecurityException) {
             // Losing permission while shutting down changes nothing worth handling.
         }
@@ -434,6 +670,14 @@ class BuligMeshService : Service() {
          * Fine for a capstone prototype, not for anything published.
          */
         private const val MANUFACTURER_ID = 0xFFFF
+
+        /**
+         * The Bluetooth SIG's Client Characteristic Configuration descriptor.
+         * Fixed by the specification — a notify characteristic without it cannot
+         * be subscribed to by any peer.
+         */
+        private val CCC_DESCRIPTOR_UUID: UUID =
+            UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
         fun start(context: Context) {
             ContextCompat.startForegroundService(

@@ -166,6 +166,14 @@ class MeshNode(
     }
 
     /** This device's digest, offered to peers before any payload changes hands. */
+    /**
+     * Whether this device has already handled a packet.
+     *
+     * Public so the receive path can answer a looping duplicate with a map
+     * lookup, before spending anything more expensive on it.
+     */
+    fun hasSeen(packetId: PacketId): Boolean = seen.contains(packetId)
+
     fun digest(): BloomDigest = BloomDigest.of(store.all().map { it.packetId })
 
     /** Packets still awaiting server acknowledgement, TTL-expired ones included. */

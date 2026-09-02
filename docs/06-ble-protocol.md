@@ -172,6 +172,20 @@ not bytes per encounter.
 The body still carries the same fields: type code, description,
 affected/vulnerability counts, lat/lng/accuracy, and the life-threatening flag.
 
+**The integrity envelope.** The encoded body is wrapped as
+`[crc32:4 big-endian][body]` before framing (`PacketEnvelope`). Earlier drafts
+placed the CRC in an 84-byte packet header that the implementation never
+adopted, with the result that `ChunkFraming.crc32` was computed nowhere and
+transmitted nowhere — the `ACK(CORRUPT)` branch of §6.5 could not fire, and a
+scrambled body would have been parsed as a real report.
+
+BLE's link layer already CRCs each radio packet, so this is not about radio
+noise. It catches corruption produced one layer up, by *our own* framing:
+fragments reassembled in the wrong order, a buffer collision between two peers,
+a truncated final write. Each fragment arrives intact, so the radio's own check
+sees nothing wrong. `PacketEnvelopeTest` asserts that every single-byte
+corruption of a realistic body is detected.
+
 Reassembly buffers are keyed by `(peer_address, packet_id)` and discarded after
 a **10-second** inactivity timeout, so a peer that walks out of range mid-transfer
 cannot leak memory.
@@ -186,6 +200,7 @@ on complete reassembly:
                                          log DUPLICATE_SUPPRESSED
                                          drop            # ← loop suppression
     if hmac invalid (key known)       -> ACK(INVALID_HMAC); log; drop
+    if hmac unverifiable (no key)     -> carry it anyway  # ← see below
     if ttl_remaining == 0             -> store, mark NOT forwardable
                                          log TTL_EXPIRED
                                          ACK(ACCEPTED_TERMINAL)
@@ -205,6 +220,26 @@ on complete reassembly:
 id, the seen-set would never match and packets would circulate until TTL burned
 out — turning an optimisation into a broadcast storm. This is the most important
 single line in the specification.
+
+### 6.5.1 Why a relay carries what it cannot verify
+
+The `(key known)` qualifier above is load-bearing. **A relay does not hold other
+devices' keys** — only the server, which provisioned them, can adjudicate a
+signature. `PacketSigner.verifyOwn` is named that narrowly for this reason.
+
+So a relay's honest answer about a stranger's packet is *"I cannot tell"*, and
+the packet is carried regardless. The alternative — refusing to relay anything
+it cannot personally verify — would leave every device able to carry only its
+own reports, which is not a mesh at all.
+
+`Verification` encodes this as three outcomes rather than a boolean:
+`VALID`, `INVALID` (checked against a key we hold, and wrong — refuse), and
+`UNKNOWN_KEY` (carry it; the server decides). Only `INVALID` produces
+`ACK(INVALID_HMAC)`.
+
+The tamper protection is therefore not lost, only *deferred*: a relay cannot
+alter a report without the **server** detecting it on arrival, because the
+signature excludes exactly the two fields a relay is allowed to change (§6.7.2).
 
 ## 6.6 TTL and hop count
 

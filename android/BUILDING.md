@@ -196,7 +196,8 @@ otherwise.
 | **`deviceId` is a fixed string** | Two phones running this build claim the same identity | Needs a persisted per-install id |
 | **No GPS capture** | The location step shows what the flow will report, not a live fix | Not wired |
 | **The mesh service is never started** | No permission request flow yet | Needs a runtime permission prompt |
-| **No GATT server role** | Two phones can find each other; nothing moves between them | Task in progress |
+| **GATT server role** | Serves all four characteristics; ACK notifications wired | **Built** |
+| **`receiver` is still null** | The server accepts writes but stores nothing — needs a MeshNode, which needs the store | Blocked on Room |
 
 So: this build demonstrates the **resident's flow and the delivery-honesty
 rules** end to end. It does **not** yet demonstrate the mesh actually carrying a

@@ -164,7 +164,10 @@ class BleSession(
 
         return BleAction.SendPacket(
             packetId = next.packetId,
-            frames = ChunkFraming.encode(next.encodeBody(), mtu),
+            // Wrapped in its checksum before framing, so the receiver can tell a
+            // scrambled reassembly from a real report. Fragments arriving intact
+            // but in the wrong order is corruption the radio's own CRC cannot see.
+            frames = ChunkFraming.encode(PacketEnvelope.wrap(next.encodeBody()), mtu),
         )
     }
 
