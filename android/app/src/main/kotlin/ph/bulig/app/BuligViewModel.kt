@@ -17,7 +17,13 @@ import ph.bulig.data.auth.LoginFailure
 import ph.bulig.data.auth.SignInResult
 import ph.bulig.data.location.LocationPolicy
 import ph.bulig.data.location.LocationUiState
+import ph.bulig.data.presentation.Assignment
+import ph.bulig.data.presentation.AssignmentDetailState
+import ph.bulig.data.presentation.AssignmentDetailStateFactory
+import ph.bulig.data.presentation.AssignmentListState
+import ph.bulig.data.presentation.AssignmentListStateFactory
 import ph.bulig.data.presentation.CountField
+import ph.bulig.data.presentation.NearbyPeer
 import ph.bulig.data.presentation.EmergencyTypeCatalog
 import ph.bulig.data.presentation.HomeStateFactory
 import ph.bulig.data.presentation.HomeUiState
@@ -99,6 +105,29 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
     )
     val location: StateFlow<LocationUiState> = _location.asStateFlow()
 
+    private val _assignments = MutableStateFlow(
+        AssignmentListStateFactory.build("", null, emptyList(), System.currentTimeMillis())
+    )
+    val assignments: StateFlow<AssignmentListState> = _assignments.asStateFlow()
+
+    private val _assignmentDetail = MutableStateFlow<AssignmentDetailState?>(null)
+    val assignmentDetail: StateFlow<AssignmentDetailState?> = _assignmentDetail.asStateFlow()
+
+    /**
+     * Peers the running relay can currently see.
+     *
+     * Fed by the Activity's binding to [BuligMeshService]. Empty when nothing is
+     * bound, which is honest: a peer list that outlived the service that
+     * produced it would be the same class of untruth as a premature delivery
+     * tick.
+     */
+    private val livePeers = MutableStateFlow<List<NearbyPeer>>(emptyList())
+
+    fun onPeersChanged(peers: List<NearbyPeer>) {
+        livePeers.value = peers
+        refresh()
+    }
+
     init {
         refresh()
         // Opportunistic and non-blocking: a phone that cannot register still
@@ -119,7 +148,87 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
         _loginFailure.value = null
         _destination.value = Destination.LOGIN
     }
-    fun openAssignments() = go(Destination.ASSIGNMENTS)
+    fun openAssignments() {
+        _destination.value = Destination.ASSIGNMENTS
+        loadAssignments()
+    }
+
+    /**
+     * Fetches the queue, and keeps whatever was already there if it cannot.
+     *
+     * A responder who walks out of signal must not watch their assignments
+     * disappear — the last known queue, visibly aged from filing time, is far
+     * more useful than an empty screen.
+     */
+    fun loadAssignments() {
+        val session = (_mode.value as? AppMode.Responder)?.session ?: return
+
+        viewModelScope.launch {
+            val fetched: List<Assignment>? = try {
+                withContext(Dispatchers.IO) { bulig.assignments.mine(session.token) }
+            } catch (e: Exception) {
+                null
+            }
+
+            _assignments.value = AssignmentListStateFactory.build(
+                responderName = session.name,
+                zone = session.badgeNo,
+                assignments = fetched ?: _assignments.value.rows.map { it.assignment },
+                nowMs = System.currentTimeMillis(),
+                typeLabels = typeLabels,
+            )
+        }
+    }
+    fun openAssignment(emergencyCode: String) {
+        val found = _assignments.value.rows
+            .firstOrNull { it.emergencyCode == emergencyCode }
+            ?.assignment
+            ?: return
+
+        _assignmentDetail.value = AssignmentDetailStateFactory.build(
+            assignment = found,
+            nowMs = System.currentTimeMillis(),
+            typeLabels = typeLabels,
+        )
+        _destination.value = Destination.ASSIGNMENT_DETAIL
+    }
+
+    /**
+     * Moves an assignment to its next status, **locally first**.
+     *
+     * The change is shown immediately and marked unsynced, because a responder
+     * standing in floodwater tapping ON SITE must see it take effect whether or
+     * not the barangay server can be reached. The action bar then says
+     * "not yet uploaded" — the same honesty rule a resident's report obeys.
+     *
+     * TO BE WIRED: pushing the change to
+     * PATCH /api/v1/assignments/{id}/status. Until then the status lives on this
+     * phone only, which the pill states rather than hides.
+     */
+    fun advanceAssignment() {
+        val current = _assignmentDetail.value?.assignment ?: return
+
+        val next = when (current.status) {
+            ph.bulig.data.presentation.ResponderStatus.ASSIGNED ->
+                ph.bulig.data.presentation.ResponderStatus.ACCEPTED
+            ph.bulig.data.presentation.ResponderStatus.ACCEPTED ->
+                ph.bulig.data.presentation.ResponderStatus.EN_ROUTE
+            ph.bulig.data.presentation.ResponderStatus.EN_ROUTE ->
+                ph.bulig.data.presentation.ResponderStatus.ON_SITE
+            ph.bulig.data.presentation.ResponderStatus.ON_SITE ->
+                ph.bulig.data.presentation.ResponderStatus.RESOLVED
+            // Closed states have no next step, and the action bar disables the
+            // button anyway.
+            else -> return
+        }
+
+        _assignmentDetail.value = AssignmentDetailStateFactory.build(
+            assignment = current.copy(status = next, statusSynced = false),
+            nowMs = System.currentTimeMillis(),
+            typeLabels = typeLabels,
+        )
+    }
+
     fun openMesh() = go(Destination.MESH_STATUS)
     fun goHome() = go(Destination.HOME)
 
@@ -223,7 +332,7 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
                 carriedForOthers = others,
                 isOnline = online,
                 isSyncing = false,
-                nearbyPeerCount = 0,
+                nearbyPeerCount = livePeers.value.size,
                 typeLabels = typeLabels,
             )
 
@@ -236,7 +345,7 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
                 // TO BE WIRED: the live peer list comes from BuligMeshService,
                 // which needs a binder this build does not have. Showing an
                 // empty list is honest; inventing peers would not be.
-                peers = emptyList(),
+                peers = livePeers.value,
                 passedOnToday = others.size,
                 deliveredBecauseOfYou = others.count { it.synced },
                 isRadioActive = ph.bulig.app.ble.MeshRadioStatus.canAdvertise.value,

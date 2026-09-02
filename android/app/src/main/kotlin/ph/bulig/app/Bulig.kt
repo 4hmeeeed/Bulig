@@ -8,6 +8,7 @@ import ph.bulig.app.store.ReportDatabase
 import ph.bulig.app.store.RoomReportStore
 import ph.bulig.app.location.FusedLocationSource
 import ph.bulig.app.store.SecureStorage
+import ph.bulig.data.auth.AssignmentApi
 import ph.bulig.data.auth.AuthApi
 import ph.bulig.data.auth.InMemorySessionStore
 import ph.bulig.data.auth.SessionManager
@@ -87,6 +88,8 @@ class Bulig(private val context: Context) {
     val sessions: SessionManager by lazy {
         SessionManager(api = AuthApi(syncConfig()), store = InMemorySessionStore())
     }
+
+    val assignments: AssignmentApi by lazy { AssignmentApi(syncConfig()) }
 
     /**
      * Rebuilt per sync rather than held, because the device token changes when

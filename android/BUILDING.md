@@ -295,13 +295,27 @@ Additional likely failures, on top of the eight already listed above:
 - **Mesh Status peers** — `BuligMeshService.LocalBinder` exposes the live peer
   list and the encounter statistics.
 
-### Still absent, and why
+### All wired
 
-- **The assignment queue is empty.** Sign-in works and the screen renders, but
-  fetching `GET /api/v1/assignments` needs a client like `HttpSyncApi`. An empty
-  queue is honest until that exists; inventing assignments would not be.
-- **The Mesh Status screen does not yet bind to the service.** The binder exists
-  and publishes peers; `BuligViewModel` still passes an empty list because
-  binding needs a `ServiceConnection` lifecycle the ViewModel does not own.
-- **Assignment detail is not routed.** It redirects to the queue until the queue
-  has something in it.
+- **The assignment queue** is fetched from `GET /api/v1/me/assignments` by
+  `AssignmentApi` (14 tests). A fetch that fails keeps the queue already on
+  screen — a responder walking out of signal must not watch their assignments
+  vanish, and every age is measured from filing so a stale queue is visibly
+  stale rather than misleadingly fresh.
+- **Mesh Status binds to the live service.** `MainActivity` holds the
+  `ServiceConnection` and feeds the peer flow into the ViewModel; the list
+  clears when nothing is bound, because a peer list outliving its service would
+  be the same class of untruth as a premature delivery tick. Bound with flag `0`
+  rather than `BIND_AUTO_CREATE`: the relay's lifetime belongs to the permission
+  flow, not to whether a screen is open.
+- **Assignment detail is routed**, with the status ladder advancing locally
+  first and marking itself unsynced — the same honesty rule a resident's report
+  obeys.
+
+### The one thing left in code
+
+**Pushing a responder's status change to the server.**
+`PATCH /api/v1/assignments/{id}/status` exists on the backend and is tested
+there; the app changes the status locally and says "not yet uploaded" rather
+than pretending. That wording is correct either way, which is why this was safe
+to leave: the screen is honest about the gap instead of hiding it.

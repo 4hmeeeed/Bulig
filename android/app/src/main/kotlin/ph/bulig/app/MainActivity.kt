@@ -1,7 +1,10 @@
 package ph.bulig.app
 
 import android.Manifest
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -19,13 +22,21 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import android.os.IBinder
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.collectLatest
+import ph.bulig.app.ble.BuligMeshService
+import ph.bulig.app.screens.AssignmentDetailScreen
 import ph.bulig.app.screens.AssignmentListScreen
 import ph.bulig.app.screens.HomeScreen
 import ph.bulig.app.screens.LoginScreen
@@ -37,7 +48,6 @@ import ph.bulig.app.screens.ReportFlowScreen
 import ph.bulig.app.theme.BuligColors
 import ph.bulig.app.theme.BuligTheme
 import ph.bulig.data.auth.AppMode
-import ph.bulig.data.presentation.AssignmentListStateFactory
 import ph.bulig.data.presentation.MeshPermission
 import ph.bulig.data.presentation.PermissionStateFactory
 import ph.bulig.data.presentation.PermissionUiState
@@ -146,6 +156,58 @@ private fun BuligApp(viewModel: BuligViewModel = viewModel()) {
             viewModel.onPermissionsSettled(state)
         } else {
             viewModel.showPermissions(state)
+        }
+    }
+
+    // Bound only while the app is on screen. The relay keeps running either
+    // way — this connection exists so the Mesh Status screen can show what it
+    // is actually doing, and a peer list that outlived the service that
+    // produced it would be worse than none.
+    var binder by remember { mutableStateOf<BuligMeshService.LocalBinder?>(null) }
+
+    DisposableEffect(context) {
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                binder = service as? BuligMeshService.LocalBinder
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                binder = null
+            }
+        }
+
+        val didBind = try {
+            context.bindService(
+                Intent(context, BuligMeshService::class.java),
+                connection,
+                // Never BIND_AUTO_CREATE: the service's lifetime belongs to the
+                // permission flow, not to whether a screen happens to be open.
+                0,
+            )
+        } catch (e: Exception) {
+            false
+        }
+
+        onDispose {
+            if (didBind) {
+                try {
+                    context.unbindService(connection)
+                } catch (e: IllegalArgumentException) {
+                    // Already unbound because the service died. Nothing to undo.
+                }
+            }
+            binder = null
+        }
+    }
+
+    // Follows the service's own flow rather than polling it. Clearing the list
+    // when nothing is bound is the honest default.
+    LaunchedEffect(binder) {
+        val live = binder
+        if (live == null) {
+            viewModel.onPeersChanged(emptyList())
+        } else {
+            live.peers.collectLatest { viewModel.onPeersChanged(it) }
         }
     }
 
@@ -273,25 +335,28 @@ private fun BuligApp(viewModel: BuligViewModel = viewModel()) {
                 // the safe place: it is the one that still lets somebody report.
                 LaunchedEffect(Unit) { viewModel.goHome() }
             } else {
+                val queue by viewModel.assignments.collectAsStateWithLifecycle()
+
                 AssignmentListScreen(
-                    state = AssignmentListStateFactory.build(
-                        responderName = responder.session.name,
-                        zone = responder.session.badgeNo,
-                        // TO BE WIRED: assignments come from
-                        // GET /api/v1/assignments, which needs a client like
-                        // HttpSyncApi. An empty queue is honest until it exists;
-                        // inventing assignments would not be.
-                        assignments = emptyList(),
-                        nowMs = System.currentTimeMillis(),
-                    ),
-                    onOpen = { /* detail routing arrives with the real queue */ },
+                    state = queue,
+                    onOpen = { viewModel.openAssignment(it.emergencyCode) },
                     onBack = viewModel::goHome,
                 )
             }
         }
 
         Destination.ASSIGNMENT_DETAIL -> {
-            LaunchedEffect(Unit) { viewModel.openAssignments() }
+            val detail by viewModel.assignmentDetail.collectAsStateWithLifecycle()
+
+            detail?.let {
+                AssignmentDetailScreen(
+                    state = it,
+                    onPrimary = viewModel::advanceAssignment,
+                    onSecondary = viewModel::openAssignments,
+                    onEscalate = viewModel::openAssignments,
+                    onBack = viewModel::openAssignments,
+                )
+            } ?: LaunchedEffect(Unit) { viewModel.openAssignments() }
         }
     }
 }
