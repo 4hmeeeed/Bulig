@@ -22,6 +22,14 @@ enum class ResponderStatus {
  * [AssignmentRow.ageMs].
  */
 data class Assignment(
+    /**
+     * The server's id for this assignment, needed to PATCH a status change.
+     *
+     * Null for an assignment the server has never seen — which today means one
+     * constructed in a test, but which leaves room for an assignment that
+     * arrived over the mesh before the responder had signal.
+     */
+    val assignmentId: Long? = null,
     val emergencyCode: String,
     val typeCode: String,
     val filedAtMs: Long,

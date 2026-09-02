@@ -352,7 +352,14 @@ private fun BuligApp(viewModel: BuligViewModel = viewModel()) {
                 AssignmentDetailScreen(
                     state = it,
                     onPrimary = viewModel::advanceAssignment,
-                    onSecondary = viewModel::openAssignments,
+                    // The decline sheet's reasons are a fixed set so they stay
+                    // analysable later; the first is the sensible default until
+                    // the sheet itself is built.
+                    onSecondary = {
+                        viewModel.declineAssignment(
+                            ph.bulig.data.presentation.ActionBarStateFactory.declineReasons.first()
+                        )
+                    },
                     onEscalate = viewModel::openAssignments,
                     onBack = viewModel::openAssignments,
                 )

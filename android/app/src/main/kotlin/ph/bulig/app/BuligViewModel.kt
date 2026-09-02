@@ -13,6 +13,7 @@ import ph.bulig.app.ble.BuligMeshService
 import ph.bulig.app.sync.SyncWorker
 import ph.bulig.data.model.LocalReport
 import ph.bulig.data.auth.AppMode
+import ph.bulig.data.auth.PushOutcome
 import ph.bulig.data.auth.LoginFailure
 import ph.bulig.data.auth.SignInResult
 import ph.bulig.data.location.LocationPolicy
@@ -23,6 +24,7 @@ import ph.bulig.data.presentation.AssignmentDetailStateFactory
 import ph.bulig.data.presentation.AssignmentListState
 import ph.bulig.data.presentation.AssignmentListStateFactory
 import ph.bulig.data.presentation.CountField
+import ph.bulig.data.presentation.ResponderStatus
 import ph.bulig.data.presentation.NearbyPeer
 import ph.bulig.data.presentation.EmergencyTypeCatalog
 import ph.bulig.data.presentation.HomeStateFactory
@@ -199,31 +201,70 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
      * The change is shown immediately and marked unsynced, because a responder
      * standing in floodwater tapping ON SITE must see it take effect whether or
      * not the barangay server can be reached. The action bar then says
-     * "not yet uploaded" — the same honesty rule a resident's report obeys.
-     *
-     * TO BE WIRED: pushing the change to
-     * PATCH /api/v1/assignments/{id}/status. Until then the status lives on this
-     * phone only, which the pill states rather than hides.
+     * "not yet uploaded" until the push confirms — the same honesty rule a
+     * resident's report obeys.
      */
     fun advanceAssignment() {
         val current = _assignmentDetail.value?.assignment ?: return
 
         val next = when (current.status) {
-            ph.bulig.data.presentation.ResponderStatus.ASSIGNED ->
-                ph.bulig.data.presentation.ResponderStatus.ACCEPTED
-            ph.bulig.data.presentation.ResponderStatus.ACCEPTED ->
-                ph.bulig.data.presentation.ResponderStatus.EN_ROUTE
-            ph.bulig.data.presentation.ResponderStatus.EN_ROUTE ->
-                ph.bulig.data.presentation.ResponderStatus.ON_SITE
-            ph.bulig.data.presentation.ResponderStatus.ON_SITE ->
-                ph.bulig.data.presentation.ResponderStatus.RESOLVED
+            ResponderStatus.ASSIGNED -> ResponderStatus.ACCEPTED
+            ResponderStatus.ACCEPTED -> ResponderStatus.EN_ROUTE
+            ResponderStatus.EN_ROUTE -> ResponderStatus.ON_SITE
+            ResponderStatus.ON_SITE -> ResponderStatus.RESOLVED
             // Closed states have no next step, and the action bar disables the
             // button anyway.
             else -> return
         }
 
+        applyStatus(current, next)
+    }
+
+    fun declineAssignment(reason: String) {
+        val current = _assignmentDetail.value?.assignment ?: return
+        applyStatus(current, ResponderStatus.DECLINED, reason)
+    }
+
+    /**
+     * Applies a status change locally, then tries to tell the barangay.
+     *
+     * **In that order, always.** A responder standing in floodwater tapping ON
+     * SITE must see it take effect whether or not the server is reachable, so
+     * the screen updates first and the upload is what happens afterwards. The
+     * pill then says "not yet uploaded" until it succeeds — the same rule a
+     * resident's report obeys, applied to the responder's own status.
+     */
+    private fun applyStatus(
+        current: Assignment,
+        next: ResponderStatus,
+        declineReason: String? = null,
+    ) {
+        val locally = current.copy(status = next, statusSynced = false)
+        showAssignment(locally)
+
+        val token = (_mode.value as? AppMode.Responder)?.session?.token ?: return
+
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                bulig.assignmentActions.push(token, locally, next, declineReason)
+            }
+
+            // Only a confirmed upload flips the pill. A deferred or refused push
+            // leaves the change standing and visibly unsynced, which is the
+            // honest state — the responder did the thing; the barangay has not
+            // been told yet.
+            if (outcome is PushOutcome.Uploaded) {
+                showAssignment(locally.copy(statusSynced = true))
+            }
+
+            // Re-fetch so the queue behind the detail screen agrees with it.
+            loadAssignments()
+        }
+    }
+
+    private fun showAssignment(assignment: Assignment) {
         _assignmentDetail.value = AssignmentDetailStateFactory.build(
-            assignment = current.copy(status = next, statusSynced = false),
+            assignment = assignment,
             nowMs = System.currentTimeMillis(),
             typeLabels = typeLabels,
         )
@@ -342,9 +383,9 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
 
             _mesh.value = MeshStatusStateFactory.build(
                 carriedForOthers = others,
-                // TO BE WIRED: the live peer list comes from BuligMeshService,
-                // which needs a binder this build does not have. Showing an
-                // empty list is honest; inventing peers would not be.
+                // Fed by the Activity's binding to BuligMeshService. Empty
+                // whenever nothing is bound, which is honest: a peer list that
+                // outlived its service would be inventing evidence.
                 peers = livePeers.value,
                 passedOnToday = others.size,
                 deliveredBecauseOfYou = others.count { it.synced },

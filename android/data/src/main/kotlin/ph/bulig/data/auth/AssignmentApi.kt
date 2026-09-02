@@ -143,6 +143,7 @@ internal fun AssignmentDto.toAssignment(): Assignment? {
     val receivedAt = parseIso(emergency.receivedAtServer) ?: filedAt
 
     return Assignment(
+        assignmentId = id,
         emergencyCode = emergency.emergencyCode ?: "BLG-$id",
         typeCode = emergency.type?.code ?: emergency.typeCode ?: "OTHER",
         filedAtMs = filedAt ?: receivedAt ?: 0L,

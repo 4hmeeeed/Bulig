@@ -312,10 +312,24 @@ Additional likely failures, on top of the eight already listed above:
   first and marking itself unsynced — the same honesty rule a resident's report
   obeys.
 
-### The one thing left in code
+### Nothing left unwired
 
-**Pushing a responder's status change to the server.**
-`PATCH /api/v1/assignments/{id}/status` exists on the backend and is tested
-there; the app changes the status locally and says "not yet uploaded" rather
-than pretending. That wording is correct either way, which is why this was safe
-to leave: the screen is honest about the gap instead of hiding it.
+`AssignmentActions` pushes a responder's status change — `accept`, `decline`
+and the `EN_ROUTE`/`ON_SITE`/`RESOLVED` ladder each to the endpoint the backend
+actually validates. The change is applied **locally first** and only the
+confirmed upload flips the pill from "not yet uploaded", so a responder in
+floodwater sees their tap take effect regardless of signal.
+
+A grep for `TODO` or `TO BE WIRED` across `:app`, `:core-mesh` and `:data`
+now returns nothing. The remaining `TO BE VALIDATED` and `TO BE CONFIGURED`
+markers are deliberate and each needs a decision rather than code:
+
+| Marker | Where | Decision needed |
+|---|---|---|
+| `TO BE CONFIGURED` | `Bulig.BASE_URL` | the barangay's server address |
+| `TO BE REGISTERED` | `BuligMeshService` manufacturer id | currently the SIG's reserved test id `0xFFFF` |
+| `TO BE VALIDATED` | `GattContract` service UUID | check against the SIG assigned-numbers list |
+| `TO BE VALIDATED` | `MAX_STORED_PACKETS` | measure against real storage in the field test |
+| `TO BE VALIDATED` | `EmergencyTypeCatalog` Waray strings | native-speaker review |
+| `TO BE VALIDATED` | `LocationPolicy` accuracy bands | measure real fixes in the barangay |
+| `TO BE REPLACED` | `EmergencyIcons` | ship real Material Symbols as vector drawables |
