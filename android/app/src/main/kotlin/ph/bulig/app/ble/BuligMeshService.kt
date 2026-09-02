@@ -431,12 +431,14 @@ class BuligMeshService : Service() {
     /**
      * What this device tells a peer about itself.
      *
-     * TO BE WIRED: [deviceId] must come from the persisted per-install
-     * identifier once registration exists. A constant here would make every
-     * install claim the same identity.
+     * The id is the persisted per-install one, the same identity the receive
+     * path and every signed packet use. A constant here would make every
+     * install claim to be the same device, and a peer would then treat two
+     * different phones as one — collapsing exactly the distinction the mesh
+     * relies on to know who it has already talked to.
      */
     private fun nodeInfo() = NodeInfo(
-        deviceId = ph.bulig.mesh.model.DeviceId("dev-local-prototype"),
+        deviceId = ph.bulig.mesh.model.DeviceId(bulig.registration.deviceId()),
         protocolVersion = GattContract.PROTOCOL_VERSION,
         hasInternet = hasInternet(),
         pendingCount = heldPackets.size,
