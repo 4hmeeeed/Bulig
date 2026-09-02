@@ -73,7 +73,7 @@ than the test expected, and both properties are now asserted separately.
 - Device clock 40 min fast → corrected delay positive; raw delay would be negative.
 - Uncorrectable case → `clock_anomaly`, excluded from delay statistics.
 
-## 10.2a Device data-layer suite (JVM, `:data`) — 47 tests, all passing
+## 10.2a Device data-layer suite (JVM, `:data`) — 223 tests, all passing
 
 **`ReportRepositoryTest` (14)** — the local-first write path: saving succeeds
 with no network client in existence, identifiers are device-minted, packets are
@@ -105,7 +105,7 @@ This exists because reading two codebases and assuming they agree is precisely
 how the HMAC canonicalisation defect survived undetected — the backend's own
 tests passed, because they shared the bug.
 
-## 10.3 Mesh test suite (JVM, `:core-mesh`) — 37 tests, all passing
+## 10.3 Mesh test suite (JVM, `:core-mesh`) — 164 tests, all passing
 
 **`RelayScenarioTest` (13)** — one-hop delivery; four-node chain arriving at
 hop 3 / TTL 7 with packet id, payload and signature unchanged; duplicate
@@ -179,9 +179,33 @@ delay, hop count, success/failure, failure cause.
 | 9 | Dashboard update time | server timestamp → Livewire render, browser instrumentation |
 | 10 | Battery impact | Android Battery Historian over a 4-hour relay session |
 
-All of these are exposed by `GET /api/v1/metrics/evaluation` and rendered on the
-Packet Monitoring page. **The system produces its own evaluation dataset** — no
-manual tallying the week before defense.
+**Six of the ten** — 3, 4, 5, 6, 7, 8 — are exposed by
+`GET /api/v1/metrics/evaluation` and rendered on the Packet Monitoring page,
+because the server sees every packet and can compute them from its own tables.
+For those, the system produces its own evaluation dataset with no manual
+tallying.
+
+The other four cannot come from the server, and an earlier draft of this section
+claimed they did:
+
+- **Metric 2 (device discovery time)** can only be measured *on the phone* — the
+  server never learns when a scan started. `EncounterRecorder` in `:core-mesh`
+  measures it, along with encounter duration and the abandoned-encounter rate.
+  It reports **median and p90 rather than a mean**, because discovery times are
+  heavily skewed: most resolve in a second or two and a few take twenty, and a
+  mean over that shape describes an encounter that never happens. Percentiles
+  are nearest-rank, so every figure quoted in the results chapter is a duration
+  some run actually produced.
+- **Metric 1 (emergency creation time)** — stopwatch during SUS sessions.
+- **Metric 9 (dashboard update time)** — browser instrumentation.
+- **Metric 10 (battery impact)** — Android Battery Historian.
+
+### Abandoned encounters
+
+`EncounterRecorder` reports encounters that ended before their transfer
+finished. This number is expected to be high, and reporting it is the point:
+people walk out of range mid-transfer constantly, and a field study that omits
+it has not measured the thing it claims to.
 
 ## 10.6 ISO/IEC 25010 mapping
 

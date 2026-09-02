@@ -46,6 +46,7 @@ import ph.bulig.mesh.ble.InboundResult
 import ph.bulig.mesh.ble.NodeInfo
 import ph.bulig.mesh.ble.NodeInfoCodec
 import ph.bulig.mesh.ble.PacketReceiver
+import ph.bulig.mesh.metrics.EncounterRecorder
 import ph.bulig.mesh.model.MeshPacket
 
 /**
@@ -101,6 +102,12 @@ class BuligMeshService : Service() {
 
     /** Peers that subscribed to ACK notifications, by address. */
     private val ackSubscribers = mutableSetOf<String>()
+
+    /**
+     * Produces section 24 metric 2, which nothing else can: the server never
+     * learns when a scan started, so discovery time is measurable only here.
+     */
+    private val encounters = EncounterRecorder()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -404,6 +411,7 @@ class BuligMeshService : Service() {
 
         try {
             scanner.startScan(listOf(filter), settings, scanCallback)
+            encounters.onScanStarted(System.currentTimeMillis())
         } catch (e: SecurityException) {
             stopSelf()
         }
@@ -424,6 +432,11 @@ class BuligMeshService : Service() {
                 return
             }
 
+            encounters.onPeerDiscovered(
+                peer = ph.bulig.mesh.model.DeviceId(result.device.address),
+                nowMs = System.currentTimeMillis(),
+            )
+
             connectTo(result.device)
         }
     }
@@ -442,6 +455,9 @@ class BuligMeshService : Service() {
 
         try {
             device.connectGatt(this, false, gattCallback)
+            encounters.onEncounterStarted(
+                ph.bulig.mesh.model.DeviceId(address), System.currentTimeMillis(),
+            )
         } catch (e: SecurityException) {
             activeSessions.remove(address)
         }
@@ -531,6 +547,16 @@ class BuligMeshService : Service() {
                 is BleAction.ReadDigest -> readCharacteristic(gatt, GattContract.CHAR_DIGEST)
                 is BleAction.SendPacket -> writeFrames(gatt, action)
                 is BleAction.Disconnect -> {
+                    val summary = session.summary()
+                    encounters.onEncounterEnded(
+                        peer = ph.bulig.mesh.model.DeviceId(gatt.device.address),
+                        nowMs = System.currentTimeMillis(),
+                        packetsDelivered = summary.deliveredCount,
+                        // An encounter that ran out of queue finished its work;
+                        // one cut short by a peer walking away did not, and the
+                        // difference is what the field study is measuring.
+                        completed = session.isFinished && summary.failures.isEmpty(),
+                    )
                     activeSessions.remove(gatt.device.address)
                     gatt.close()
                 }
@@ -649,6 +675,9 @@ class BuligMeshService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
+
+    /** Read by the evaluation build; see docs/10-testing-plan.md 10.5. */
+    fun encounterStats() = encounters.snapshot()
 
     override fun onDestroy() {
         super.onDestroy()
