@@ -25,6 +25,17 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
+    // OkHttp rather than Retrofit: one dependency instead of three, and the
+    // sync path needs explicit control over timeouts and status-code handling
+    // that Retrofit's exception model would hide behind HttpException. It is a
+    // plain JVM library, so the client and its tests run in this module without
+    // Android — which is why they can be tested at all.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // A real HTTP server in the test JVM. Asserting against a hand-written fake
+    // would only prove the fake agrees with itself.
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.3")

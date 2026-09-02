@@ -192,7 +192,7 @@ otherwise.
 | What | Why it matters | Status |
 |---|---|---|
 | **Storage is in memory** | Reports vanish when the app is killed | Room + SQLCipher not wired |
-| **Packets are unsigned** (`PacketSigner(null)`) | The server would reject them as `INVALID_HMAC` | Device key needs registration, which does not exist |
+| **Packets are unsigned** (`PacketSigner(null)`) | The server would reject them as `INVALID_HMAC` | `DeviceRegistrar` built and tested; not yet called or stored |
 | **`deviceId` is a fixed string** | Two phones running this build claim the same identity | Needs a persisted per-install id |
 | **No GPS capture** | The location step shows what the flow will report, not a live fix | Not wired |
 | **The mesh service is never started** | No permission request flow yet | Needs a runtime permission prompt |
