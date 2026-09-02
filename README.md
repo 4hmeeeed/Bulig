@@ -19,6 +19,18 @@ the final hop.**
 
 ---
 
+## Running it
+
+**[`RUNNING.md`](RUNNING.md)** — the ordered runbook: prove the tests, start the
+backend, build the app, then two phones. Start there.
+
+```bash
+cd android && ./gradlew :core-mesh:test :data:test   # 432 tests, no Android SDK needed
+cd backend && php artisan test                       # 66 tests
+```
+
+---
+
 ## Repository layout
 
 ```
