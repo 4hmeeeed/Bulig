@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import ph.bulig.data.store.ReportRecord
 
 /**
@@ -160,7 +160,7 @@ abstract class ReportDatabase : RoomDatabase() {
                     ReportDatabase::class.java,
                     NAME,
                 )
-                    .openHelperFactory(SupportFactory(passphrase))
+                    .openHelperFactory(SupportOpenHelperFactory(passphrase))
                     // No destructive migration. A schema change that wiped a
                     // resident's undelivered reports would be the single worst
                     // thing this app could do on an update.

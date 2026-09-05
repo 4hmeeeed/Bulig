@@ -23,14 +23,18 @@ dependencies {
     // local persistence and talking to the server.
     api(project(":core-mesh"))
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // `api`, not `implementation`: HttpSyncApi and AssignmentActions expose
+    // Json and OkHttpClient directly in their public signatures (defaultJson,
+    // defaultClient()), so :app — which constructs these classes itself —
+    // needs both on its own compile classpath, not just this module's.
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     // OkHttp rather than Retrofit: one dependency instead of three, and the
     // sync path needs explicit control over timeouts and status-code handling
     // that Retrofit's exception model would hide behind HttpException. It is a
     // plain JVM library, so the client and its tests run in this module without
     // Android — which is why they can be tested at all.
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    api("com.squareup.okhttp3:okhttp:4.12.0")
 
     // A real HTTP server in the test JVM. Asserting against a hand-written fake
     // would only prove the fake agrees with itself.
