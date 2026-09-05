@@ -25,6 +25,43 @@ android {
         versionName = "0.1.0-capstone"
     }
 
+    /**
+     * AGP embeds an encrypted blob describing the app's dependencies into the
+     * APK Signing Block. Play Console is the only consumer, this build never
+     * goes there, and some vendor package-manager verifiers handle the extra
+     * block poorly — so leave it out.
+     */
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            /**
+             * Sign debug builds with every scheme, not just v2.
+             *
+             * AGP skips v1 (JAR) signing whenever minSdk >= 24, and does not
+             * enable v3 for debug, so the default debug APK here carried a v2
+             * signature and nothing else — confirmed with
+             * `apksigner verify --verbose`. The test handset (OPPO, ColorOS,
+             * Android 16) then refused to install it:
+             *
+             *   INSTALL_PARSE_FAILED_NO_CERTIFICATES: Failed to collect
+             *   certificates ... using APK Signature Scheme v2: SHA-256 digest
+             *   of contents did not verify
+             *
+             * The APK verifies locally, so this is the device's verifier
+             * failing on a v2-only APK with no other scheme to fall back to.
+             * Signing with v1, v2 and v3 gives it three ways to succeed and
+             * costs nothing but a slightly larger APK.
+             */
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+        }
+    }
+
     buildTypes {
         debug {
             /**
