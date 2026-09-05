@@ -26,6 +26,24 @@ android {
     }
 
     buildTypes {
+        debug {
+            /**
+             * Debug builds carry native code for one architecture, not four.
+             *
+             * SQLCipher ships .so files for arm64-v8a, armeabi-v7a, x86 and
+             * x86_64, and this build cannot strip them (no NDK on the build
+             * machine), so all four go in at full size. The result would not
+             * fit on the test handset — `adb install` failed outright with
+             * "Requested internal only, but not enough space".
+             *
+             * arm64-v8a covers every 64-bit Android phone, which is every
+             * phone that ships today. A 32-bit-only handset would refuse to
+             * install this build; add "armeabi-v7a" here if one turns up in
+             * testing. Release builds are untouched and stay universal.
+             */
+            ndk { abiFilters += listOf("arm64-v8a") }
+        }
+
         release {
             isMinifyEnabled = false
             proguardFiles(
