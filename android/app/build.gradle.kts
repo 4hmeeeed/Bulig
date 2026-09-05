@@ -1,11 +1,13 @@
 plugins {
-    // Versions are declared here rather than in the root build file. Declaring
-    // them at the root forces Gradle to resolve the Android Gradle Plugin from
-    // Google's Maven even with `apply false`, which breaks :core-mesh and :data
-    // on machines without the Android SDK.
+    // The Android Gradle Plugin's version is declared only here, not at the
+    // root: declaring it at the root forces Gradle to resolve it from Google's
+    // Maven even with `apply false`, which breaks :core-mesh and :data on
+    // machines without the Android SDK. kotlin("android") and
+    // kotlin("plugin.compose") are versioned in the root build file instead —
+    // see the comment there — and applied here without a version.
     id("com.android.application") version "8.7.3"
-    kotlin("android") version "2.0.21"
-    kotlin("plugin.compose") version "2.0.21"
+    kotlin("android")
+    kotlin("plugin.compose")
     // Room's annotation processor. KSP rather than kapt: faster, and the
     // version must track the Kotlin version above exactly or it refuses to run.
     id("com.google.devtools.ksp") version "2.0.21-1.0.28"
