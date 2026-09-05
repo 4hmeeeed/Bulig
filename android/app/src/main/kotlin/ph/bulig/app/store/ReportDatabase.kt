@@ -155,6 +155,15 @@ abstract class ReportDatabase : RoomDatabase() {
          */
         fun open(context: Context, passphrase: ByteArray): ReportDatabase =
             instance ?: synchronized(this) {
+                // sqlcipher-android does not load its own native library — that
+                // was the legacy android-database-sqlcipher artifact's
+                // SQLiteDatabase.loadLibs(context). Without this call the Java
+                // classes resolve and every native method behind them is
+                // missing, so the first query dies with UnsatisfiedLinkError on
+                // SQLiteConnection.nativeOpen rather than anything that names
+                // the real problem. Idempotent, and cheap after the first call.
+                System.loadLibrary("sqlcipher")
+
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     ReportDatabase::class.java,
