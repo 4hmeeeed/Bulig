@@ -104,15 +104,27 @@ class DeviceRegistrar(
             }
 
             if (!it.isSuccessful) {
-                // 403 here means the device was revoked, which is a decision an
-                // operator made deliberately. Retrying cannot undo it.
                 throw SyncException(
-                    if (it.code == 403) {
-                        SyncFailure.Rejected(403, "device revoked")
-                    } else if (it.code >= 500) {
-                        SyncFailure.ServerError(it.code)
-                    } else {
-                        SyncFailure.Rejected(it.code, text.take(200))
+                    when {
+                        // 403 means the device was revoked, which is a decision
+                        // an operator made deliberately. Retrying cannot undo it.
+                        it.code == 403 -> SyncFailure.Rejected(403, "device revoked")
+
+                        // 429 is the registration endpoint's throttle — three
+                        // attempts an hour, because re-registering rotates the
+                        // signing key and is therefore worth rate-limiting.
+                        // It is the server asking for room, not a refusal, and
+                        // classifying it as one made an unregistered phone give
+                        // up permanently: RegistrationManager maps Rejected to
+                        // Refused, SyncWorker treats Refused as Result.failure(),
+                        // and the phone then never tried again. HttpSyncApi has
+                        // always got this right for the upload path; this
+                        // separate mapping simply did not know about 429.
+                        it.code == 429 -> SyncFailure.ServerError(it.code)
+
+                        it.code >= 500 -> SyncFailure.ServerError(it.code)
+
+                        else -> SyncFailure.Rejected(it.code, text.take(200))
                     }
                 )
             }

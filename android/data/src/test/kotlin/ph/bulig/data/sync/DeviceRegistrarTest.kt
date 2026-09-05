@@ -169,6 +169,28 @@ class DeviceRegistrarTest {
         assertTrue(failure.isTransient, "got $failure")
     }
 
+    /**
+     * The registration endpoint allows three attempts an hour, because
+     * re-registering rotates the signing key. A phone that has never
+     * registered asks on every sync run, so it reaches that ceiling quickly —
+     * and this used to end its life: 429 fell through to Rejected, which
+     * RegistrationManager reports as Refused, which SyncWorker treats as
+     * Result.failure(). The phone stopped trying forever over a throttle that
+     * clears in an hour. Observed on real hardware, with reports sitting
+     * undelivered on a phone that had a working network the whole time.
+     */
+    @Test
+    fun `a throttled registration is transient, not a refusal`() {
+        server.enqueue(
+            MockResponse().setResponseCode(429)
+                .setBody("""{"message":"Too Many Attempts."}""")
+        )
+
+        val failure = assertFailsWith<SyncException> { registrar().register(request()) }.failure
+
+        assertTrue(failure.isTransient, "a throttle must not end the device's life: got $failure")
+    }
+
     @Test
     fun `an unreachable server is transient`() {
         server.shutdown()
