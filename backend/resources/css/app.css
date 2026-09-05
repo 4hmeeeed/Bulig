@@ -1,0 +1,140 @@
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@source '../../resources/views/**/*.blade.php';
+@source '../../app/Livewire/**/*.php';
+
+/*
+ * Bulig command center theme.
+ *
+ * Every colour used by the UI is declared here as a semantic token. Blade
+ * templates reference roles ("surface", "priority-critical"), never raw hex, so
+ * a finished visual design can be applied by editing this file alone.
+ */
+@theme {
+  --color-canvas: oklch(0.98 0.004 250);
+  --color-surface: oklch(1 0 0);
+  --color-surface-raised: oklch(0.99 0.003 250);
+  --color-border: oklch(0.90 0.008 250);
+  --color-border-strong: oklch(0.82 0.012 250);
+
+  --color-ink: oklch(0.22 0.015 260);
+  --color-ink-muted: oklch(0.50 0.014 260);
+  --color-ink-subtle: oklch(0.64 0.012 260);
+  --color-ink-inverse: oklch(0.99 0 0);
+
+  --color-brand: oklch(0.52 0.16 250);
+  --color-brand-strong: oklch(0.44 0.17 252);
+  --color-brand-soft: oklch(0.95 0.03 250);
+
+  /* Priority is never encoded by colour alone — each is paired with a label
+     and an icon in the UI, for accessibility and for greyscale printing. */
+  --color-priority-critical: oklch(0.55 0.22 25);
+  --color-priority-high: oklch(0.65 0.19 55);
+  --color-priority-moderate: oklch(0.75 0.15 90);
+  --color-priority-low: oklch(0.65 0.10 200);
+
+  --color-priority-critical-soft: oklch(0.95 0.04 25);
+  --color-priority-high-soft: oklch(0.96 0.04 55);
+  --color-priority-moderate-soft: oklch(0.96 0.05 90);
+  --color-priority-low-soft: oklch(0.96 0.03 200);
+
+  --color-state-online: oklch(0.62 0.16 150);
+  --color-state-offline: oklch(0.70 0.17 65);
+  --color-state-syncing: oklch(0.60 0.15 250);
+  --color-state-danger: oklch(0.55 0.22 25);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+
+  --radius-panel: 0.75rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* Operators read this under stress; nothing smaller than 16px in body copy. */
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .panel {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .stat-tile {
+    @apply px-5 py-4 flex flex-col gap-1;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+  }
+
+  .stat-value {
+    @apply text-3xl font-semibold tabular-nums leading-none;
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide;
+    color: var(--color-ink-subtle);
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .field-label {
+    @apply block text-xs font-semibold uppercase tracking-wide mb-1;
+    color: var(--color-ink-subtle);
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
+           text-sm font-semibold transition-colors;
+    /* 44px minimum target: this is used on touch devices in the field. */
+    min-height: 2.75rem;
+  }
+
+  .btn-primary {
+    background-color: var(--color-brand);
+    color: var(--color-ink-inverse);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-brand-strong);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-ink);
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--color-surface-raised);
+  }
+
+  .data-table {
+    @apply w-full text-sm border-collapse;
+  }
+
+  .data-table th {
+    @apply text-left text-xs font-semibold uppercase tracking-wide px-4 py-2.5;
+    color: var(--color-ink-subtle);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .data-table td {
+    @apply px-4 py-3 align-top;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  /* Wide content scrolls inside its own container; the page body never does. */
+  .table-scroll {
+    @apply overflow-x-auto;
+  }
+}

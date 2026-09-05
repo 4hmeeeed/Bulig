@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:oklch(0.955 0.005 250);-webkit-font-smoothing:antialiased;text-wrap:pretty}
+a{color:oklch(0.52 0.16 250);text-decoration:none}
+a:hover{color:oklch(0.44 0.17 252)}
+@keyframes bulig-spin{to{transform:rotate(360deg)}}
+@keyframes bulig-pulse{0%{transform:scale(.55);opacity:.45}100%{transform:scale(1.3);opacity:0}}
+</style>
+</helmet>
+
+<div style="padding:56px 56px 40px;display:flex;flex-direction:column;gap:44px;font-family:'Inter',sans-serif">
+
+<div style="display:flex;flex-direction:column;gap:18px;max-width:1180px">
+  <span style="font:500 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.14em;color:oklch(0.52 0.16 250)">CAPSTONE PROTOTYPE · BARANGAY 88, TACLOBAN CITY</span>
+  <h1 style="margin:0;font:800 40px/1.1 'Inter',sans-serif;letter-spacing:-0.02em;color:oklch(0.22 0.015 260)">BULIG — offline-first emergency reporting</h1>
+  <p style="margin:0;max-width:720px;font:400 16px/1.6 'Inter',sans-serif;color:oklch(0.50 0.014 260)">A resident files a report with no internet and no cell signal. The report is held on their phone and relayed phone-to-phone over Bluetooth until some phone finds signal and hands it to the barangay command center. Delivery is opportunistic, so the interface never claims more than it knows.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;max-width:900px">
+    <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:4px solid oklch(0.50 0.014 260);border-radius:0.75rem">
+      <span style="display:flex;align-items:center;gap:7px;font:700 11px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">smartphone</span>SAVED ON THIS PHONE</span>
+      <span style="font:400 13px/1.45 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Written to local storage. Nobody has seen it yet.</span>
+    </div>
+    <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:4px solid oklch(0.60 0.15 250);border-radius:0.75rem">
+      <span style="display:flex;align-items:center;gap:7px;font:700 11px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.60 0.15 250)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">hub</span>RELAYED TO NEARBY PHONES</span>
+      <span style="font:400 13px/1.45 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Copies are travelling. Still not delivered.</span>
+    </div>
+    <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:4px solid oklch(0.62 0.16 150);border-radius:0.75rem">
+      <span style="display:flex;align-items:center;gap:7px;font:700 11px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.62 0.16 150)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">check_circle</span>DELIVERED TO COMMAND CENTER</span>
+      <span style="font:400 13px/1.45 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Confirmed receipt. Only this state says delivered.</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:flex-start;max-width:900px;padding:14px 16px;background:oklch(0.55 0.22 25 / 0.06);border:1px solid oklch(0.55 0.22 25 / 0.28);border-radius:0.75rem">
+    <span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1.2;color:oklch(0.55 0.22 25)">warning</span>
+    <span style="font:500 13.5px/1.5 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Capstone prototype. BULIG does not replace official emergency services. When you have signal, call 911 or your barangay hotline first.</span>
+  </div>
+</div>
+
+<section style="display:flex;flex-direction:column;gap:26px">
+  <div style="display:flex;align-items:center;gap:14px">
+    <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.12em;color:oklch(0.22 0.015 260)">RESIDENT APP · FILING A REPORT</span>
+    <span style="flex:1;height:1px;background:oklch(0.90 0.008 250)"></span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:44px 28px;align-items:flex-start">
+
+    <div id="b01" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">01</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">HOME</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Connectivity first, one enormous action second. Everything else is subordinate; the report button is a single tap, no hold gesture, no confirmation dialog before the type picker.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">9:41</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_full</span>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;gap:12px;padding:13px 16px 14px;background:oklch(0.70 0.17 65 / 0.11);border-left:4px solid oklch(0.70 0.17 65);border-bottom:1px solid oklch(0.70 0.17 65 / 0.3)">
+          <span style="flex:none;width:38px;height:38px;border-radius:0.6rem;background:oklch(1 0 0);display:flex;align-items:center;justify-content:center;border:1px solid oklch(0.70 0.17 65 / 0.4)"><span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span></span>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.48 0.14 62)">OFFLINE — NO SIGNAL</span>
+            <span style="font:500 14px/1.4 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Reports are saved and will be relayed to nearby phones.</span>
+          </div>
+        </div>
+        <div style="flex:none;height:46px;display:flex;align-items:center;gap:9px;padding:0 16px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="font-family:'Material Symbols Outlined';font-size:19px;line-height:1;color:oklch(0.52 0.16 250)">hub</span>
+          <span style="font:600 14px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">{{ nearbyPhones }} Bulig phones nearby</span>
+          <span style="flex:1"></span>
+          <span style="display:flex;align-items:center;gap:2px;font:600 13px/1 'Inter',sans-serif;color:oklch(0.52 0.16 250)">Mesh<span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1">chevron_right</span></span>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:16px">
+          <div style="flex:none;height:212px;border-radius:0.75rem;background:oklch(0.55 0.22 25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;box-shadow:0 4px 14px oklch(0.55 0.22 25 / 0.32)">
+            <span style="font-family:'Material Symbols Outlined';font-size:44px;line-height:1;color:oklch(1 0 0)">sos</span>
+            <span style="font:800 33px/1.05 'Inter',sans-serif;letter-spacing:-0.01em;color:oklch(1 0 0);text-align:center">REPORT<br>EMERGENCY</span>
+            <span style="font:500 16px/1.2 'Inter',sans-serif;color:oklch(1 0 0 / 0.88)">Isumat an Emerhensya</span>
+            <span style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:5px 11px;border-radius:999px;background:oklch(1 0 0 / 0.18);font:600 12px/1 'Inter',sans-serif;color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>Works without signal</span>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:8px;padding:0 2px">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.50 0.014 260)">MY REPORTS</span>
+            <span style="flex:1;height:1px;background:oklch(0.90 0.008 250)"></span>
+            <span style="font:600 12px/1 'Inter',sans-serif;color:oklch(0.64 0.012 260)">3</span>
+          </div>
+          <div style="flex:none;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.50 0.014 260)">flood</span></span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+                <span style="font:700 15px/1.15 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+                <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">{{ emergencyCode }} · 15:02</span>
+              </div>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.60 0.15 250 / 0.1);border:1px solid oklch(0.60 0.15 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.60 0.15 250)">hub</span><span style="font:700 11px/1 'Inter',sans-serif;letter-spacing:0.03em;color:oklch(0.44 0.13 252)">RELAYED</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
+              <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.50 0.014 260)">medical_services</span></span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+                <span style="font:700 15px/1.15 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Medical / Emerhensya Medikal</span>
+                <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">BLG-2026-0389 · Aug 24</span>
+              </div>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.62 0.16 150 / 0.1);border:1px solid oklch(0.62 0.16 150 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">check_circle</span><span style="font:700 11px/1 'Inter',sans-serif;letter-spacing:0.03em;color:oklch(0.42 0.12 152)">DELIVERED</span></span>
+            </div>
+          </div>
+          <span style="flex:1"></span>
+          <div style="flex:none;display:flex;gap:9px;padding:11px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1.25;color:oklch(0.55 0.22 25)">warning</span>
+            <span style="font:400 11.5px/1.45 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Capstone prototype — not a replacement for official emergency services. Call 911 when you have signal.</span>
+          </div>
+        </div>
+        <div style="flex:none;height:74px;display:flex;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.44 0.17 252);border-top:2px solid oklch(0.44 0.17 252);margin-top:-1px">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">home</span>
+            <span style="font:700 11px/1 'Inter',sans-serif">Home</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">description</span>
+            <span style="font:500 11px/1 'Inter',sans-serif">My reports</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">hub</span>
+            <span style="font:500 11px/1 'Inter',sans-serif">Mesh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b02" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">02</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">EMERGENCY TYPE PICKER</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Ten tiles, 117 px tall, no scrolling and no search. English on top, Waray-Waray beneath, distinct icon silhouette per type so the tile is recognisable before the words are read.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">9:41</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_full</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1">arrow_back</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 18px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">What is happening?</span>
+            <span style="font:500 13px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Ano an nahitatabo? Tap one.</span>
+          </div>
+          <span style="flex:none;font:600 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">1 / 4</span>
+        </div>
+        <div style="flex:none;display:flex;align-items:center;gap:8px;padding:9px 16px;background:oklch(0.70 0.17 65 / 0.11);border-left:4px solid oklch(0.70 0.17 65);border-bottom:1px solid oklch(0.70 0.17 65 / 0.3)">
+          <span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+          <span style="font:600 12.5px/1.3 'Inter',sans-serif;color:oklch(0.30 0.06 60)">OFFLINE — this report will be saved on your phone</span>
+        </div>
+        <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:14px 16px 16px">
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">medical_services</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Medical</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Emerhensya Medikal</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">local_fire_department</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Fire</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Sunog</span>
+          </div>
+          <div style="background:oklch(0.95 0.03 250);border:2px solid oklch(0.44 0.17 252);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">flood</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Flood</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.44 0.17 252);text-align:center">Baha</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">landslide</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Landslide</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Pagdahili sang tuna</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">earthquake</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Earthquake</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Linog</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">hail</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Rescue needed</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Kinahanglan bulig</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">person_search</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Missing person</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Nawawara nga tawo</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">emergency_home</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Trapped person</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Nakukulong nga tawo</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.44 0.17 252)">construction</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Infrastructure</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Nadaot nga pasilidad</span>
+          </div>
+          <div style="background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:32px;line-height:1;color:oklch(0.50 0.014 260)">more_horiz</span>
+            <span style="font:700 15px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260);text-align:center">Other</span>
+            <span style="font:500 12px/1.15 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center">Iba pa</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b03" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">03</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">REPORT DETAILS</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Everything is optional except the type. Counts are 56 dp steppers, not keyboards; description accepts a voice note instead of typing. The life-threatening toggle is the one loud control.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">9:42</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_full</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1">arrow_back</span></span>
+          <div style="flex:1;display:flex;align-items:center;gap:8px">
+            <span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.44 0.17 252)">flood</span>
+            <span style="font:700 18px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+          </div>
+          <span style="flex:none;font:600 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">2 / 4</span>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 16px;overflow:hidden">
+          <div style="flex:none;display:flex;flex-direction:column;gap:8px">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">WHAT IS HAPPENING? — OPTIONAL</span>
+            <div style="height:88px;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);border-radius:0.75rem;padding:12px 13px"><span style="font:400 15px/1.45 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Tubig abot na sa hita sa Purok 4. Duha ka bata ug usa ka lola sa atop.</span></div>
+            <div style="height:48px;display:flex;align-items:center;justify-content:center;gap:8px;background:oklch(1 0 0);border:1.5px solid oklch(0.52 0.16 250);border-radius:0.75rem"><span style="font-family:'Material Symbols Outlined';font-size:21px;line-height:1;color:oklch(0.44 0.17 252)">mic</span><span style="font:700 15px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">Record voice note instead</span></div>
+          </div>
+          <div style="flex:none;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">People affected</span>
+                <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Pira ka tawo</span>
+              </div>
+              <div style="flex:none;display:flex;align-items:center;gap:4px">
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.22 0.015 260)">remove</span></span>
+                <span style="width:44px;text-align:center;font:700 22px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">5</span>
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.95 0.03 250);border:1.5px solid oklch(0.52 0.16 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.44 0.17 252)">add</span></span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Children</span>
+                <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Kabataan</span>
+              </div>
+              <div style="flex:none;display:flex;align-items:center;gap:4px">
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.22 0.015 260)">remove</span></span>
+                <span style="width:44px;text-align:center;font:700 22px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">2</span>
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.95 0.03 250);border:1.5px solid oklch(0.52 0.16 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.44 0.17 252)">add</span></span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Elderly</span>
+                <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Lagas</span>
+              </div>
+              <div style="flex:none;display:flex;align-items:center;gap:4px">
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.22 0.015 260)">remove</span></span>
+                <span style="width:44px;text-align:center;font:700 22px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">1</span>
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.95 0.03 250);border:1.5px solid oklch(0.52 0.16 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.44 0.17 252)">add</span></span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Cannot walk alone</span>
+                <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Diri makalakat nga usa</span>
+              </div>
+              <div style="flex:none;display:flex;align-items:center;gap:4px">
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.22 0.015 260)">remove</span></span>
+                <span style="width:44px;text-align:center;font:700 22px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">1</span>
+                <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.95 0.03 250);border:1.5px solid oklch(0.52 0.16 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.44 0.17 252)">add</span></span>
+              </div>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:12px;padding:13px 14px;background:oklch(0.55 0.22 25 / 0.07);border:2px solid oklch(0.55 0.22 25);border-radius:0.75rem">
+            <span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.55 0.22 25)">warning</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+              <span style="font:800 16px/1.15 'Inter',sans-serif;color:oklch(0.42 0.18 27)">Life-threatening</span>
+              <span style="font:500 12.5px/1.3 'Inter',sans-serif;color:oklch(0.42 0.18 27)">Delikado an kinabuhi — someone may die without help now</span>
+            </div>
+            <span style="flex:none;width:58px;height:34px;border-radius:999px;background:oklch(0.55 0.22 25);display:flex;align-items:center;justify-content:flex-end;padding:3px"><span style="width:28px;height:28px;border-radius:999px;background:oklch(1 0 0)"></span></span>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 16px 16px;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="height:60px;border-radius:0.75rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center;gap:8px"><span style="font:800 17px/1 'Inter',sans-serif;letter-spacing:0.02em;color:oklch(1 0 0)">CONTINUE</span><span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(1 0 0)">arrow_forward</span></div>
+          <span style="font:400 11.5px/1.4 'Inter',sans-serif;color:oklch(0.64 0.012 260);text-align:center">Nothing is sent yet. Next: confirm where you are.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="b04" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">04</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">LOCATION CONFIRM</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">The accuracy ring is drawn to true scale, so a bad fix looks bad. No reverse-geocoded street address is invented — only the purok the resident confirms, plus raw coordinates for responders.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">9:43</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_full</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1">arrow_back</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 18px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Where are you?</span>
+            <span style="font:500 13px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Hain ka yana?</span>
+          </div>
+          <span style="flex:none;font:600 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">3 / 4</span>
+        </div>
+        <div style="flex:none;height:296px;position:relative;background:oklch(0.94 0.012 230);border-bottom:1px solid oklch(0.90 0.008 250);overflow:hidden">
+          <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,oklch(0.22 0.015 260 / 0.055) 0 1px,transparent 1px 26px),repeating-linear-gradient(90deg,oklch(0.22 0.015 260 / 0.055) 0 1px,transparent 1px 26px)"></div>
+          <div style="position:absolute;left:-20px;right:-20px;top:118px;height:22px;background:oklch(1 0 0 / 0.8);transform:rotate(-4deg)"></div>
+          <div style="position:absolute;top:-20px;bottom:-20px;left:214px;width:16px;background:oklch(1 0 0 / 0.8);transform:rotate(6deg)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:74px;background:oklch(0.70 0.10 230 / 0.42);border-top:2px solid oklch(0.62 0.12 230 / 0.55)"></div>
+          <span style="position:absolute;left:14px;bottom:14px;font:500 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:0.06em;color:oklch(0.40 0.06 235)">CADACAN RIVER</span>
+          <div style="position:absolute;left:127px;top:97px;width:136px;height:136px;border-radius:999px;background:oklch(0.52 0.16 250 / 0.14);border:1.5px dashed oklch(0.52 0.16 250 / 0.6)"></div>
+          <div style="position:absolute;left:184px;top:154px;width:22px;height:22px;border-radius:999px;background:oklch(0.44 0.17 252);border:3px solid oklch(1 0 0);box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.4)"></div>
+          <div style="position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:5px;padding:9px 11px;background:oklch(1 0 0 / 0.95);border:1px solid oklch(0.90 0.008 250);border-radius:0.6rem">
+            <span style="display:flex;align-items:center;gap:6px;font:700 11px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.70 0.17 65)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">cloud_off</span>OFFLINE MAP</span>
+            <span style="font:400 11px/1.3 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Cached tiles · saved 3 days ago</span>
+          </div>
+          <div style="position:absolute;right:12px;top:12px;width:48px;height:48px;border-radius:0.6rem;background:oklch(1 0 0 / 0.95);border:1px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:24px;line-height:1;color:oklch(0.44 0.17 252)">my_location</span></div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 16px">
+          <div style="flex:none;display:flex;gap:11px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1.15;color:oklch(0.70 0.17 65)">gps_not_fixed</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+              <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Accuracy ±38 m</span>
+              <span style="font:400 13px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">The pin is an estimate, not an address. Responders will search the whole circle. Move to open sky for a tighter fix.</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:7px">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">CONFIRM YOUR AREA</span>
+            <div style="height:56px;display:flex;align-items:center;gap:11px;padding:0 13px;background:oklch(0.95 0.03 250);border:2px solid oklch(0.52 0.16 250);border-radius:0.75rem">
+              <span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.44 0.17 252)">place</span>
+              <span style="flex:1;font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Purok 4, Barangay 88</span>
+              <span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.44 0.17 252)">expand_more</span>
+            </div>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260);padding-left:2px">11.24186, 125.00417 · fix at 9:42</span>
+          </div>
+          <div style="flex:none;height:52px;display:flex;align-items:center;justify-content:center;gap:8px;background:oklch(1 0 0);border:1.5px solid oklch(0.52 0.16 250);border-radius:0.75rem"><span style="font-family:'Material Symbols Outlined';font-size:21px;line-height:1;color:oklch(0.44 0.17 252)">edit_location_alt</span><span style="font:700 15px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">Adjust pin by hand</span></div>
+          <span style="flex:1"></span>
+          <div style="flex:none;display:flex;gap:9px;padding:11px 13px;background:oklch(0.98 0.004 250);border:1px dashed oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1.3;color:oklch(0.64 0.012 260)">info</span>
+            <span style="font:400 11.5px/1.45 'Inter',sans-serif;color:oklch(0.50 0.014 260)">If GPS fails entirely you can still submit with only the purok. A report without coordinates is better than no report.</span>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 16px 16px;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="height:60px;border-radius:0.75rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center;gap:8px"><span style="font:800 17px/1 'Inter',sans-serif;letter-spacing:0.02em;color:oklch(1 0 0)">USE THIS LOCATION</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b05" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">05</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">REVIEW &amp; SUBMIT</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Priority is computed on the phone and shown with the reasons that produced it, so nobody has to trust a coloured word. The button says what actually happens: it saves.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">9:44</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_full</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1">arrow_back</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 18px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Check before sending</span>
+            <span style="font:500 13px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Usisaha anay</span>
+          </div>
+          <span style="flex:none;font:600 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">4 / 4</span>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 16px;overflow:hidden">
+          <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.55 0.22 25);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="display:flex;align-items:center;gap:6px;padding:7px 11px;border-radius:0.5rem;background:oklch(0.55 0.22 25);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1">error</span><span style="font:800 12.5px/1 'Inter',sans-serif;letter-spacing:0.07em">CRITICAL</span></span>
+              <span style="font:500 13px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Highest priority</span>
+            </div>
+            <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.50 0.014 260)">WHY THIS PRIORITY</span>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <span style="display:flex;gap:8px;font:500 14px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:18px;line-height:1.25;color:oklch(0.55 0.22 25)">check</span>You marked this life-threatening</span>
+              <span style="display:flex;gap:8px;font:500 14px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:18px;line-height:1.25;color:oklch(0.55 0.22 25)">check</span>2 children and 1 elderly person affected</span>
+              <span style="display:flex;gap:8px;font:500 14px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:18px;line-height:1.25;color:oklch(0.55 0.22 25)">check</span>1 person cannot walk without help</span>
+              <span style="display:flex;gap:8px;font:500 14px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:18px;line-height:1.25;color:oklch(0.55 0.22 25)">check</span>Flooding, rising water reported</span>
+            </div>
+          </div>
+          <div style="flex:none;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:11px;padding:12px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1;color:oklch(0.50 0.014 260)">flood</span>
+              <span style="flex:1;font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+              <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">Change</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:11px;padding:10px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1.15;color:oklch(0.50 0.014 260)">groups</span>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">5 people affected</span>
+                <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.50 0.014 260)">2 children · 1 elderly · 1 cannot walk alone</span>
+              </div>
+              <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">Change</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:11px;padding:10px 14px;border-bottom:1px solid oklch(0.90 0.008 250)">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1.15;color:oklch(0.50 0.014 260)">place</span>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Purok 4, Barangay 88</span>
+                <span style="font:400 12px/1.3 'IBM Plex Mono',monospace;color:oklch(0.50 0.014 260)">11.24186, 125.00417 · ±38 m</span>
+              </div>
+              <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">Change</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:11px;padding:12px 14px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1.15;color:oklch(0.50 0.014 260)">notes</span>
+              <span style="flex:1;font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Tubig abot na sa hita sa Purok 4. Duha ka bata ug usa ka lola sa atop.</span>
+            </div>
+          </div>
+          <span style="flex:1"></span>
+          <div style="flex:none;display:flex;gap:11px;padding:13px;background:oklch(0.70 0.17 65 / 0.1);border:1px solid oklch(0.70 0.17 65 / 0.45);border-radius:0.75rem">
+            <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1.15;color:oklch(0.70 0.17 65)">smartphone</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+              <span style="font:700 14px/1.2 'Inter',sans-serif;color:oklch(0.30 0.06 60)">You have no signal right now</span>
+              <span style="font:400 13px/1.4 'Inter',sans-serif;color:oklch(0.32 0.05 60)">This report will be saved on your phone and passed to nearby phones. It is not delivered until the command center confirms it.</span>
+            </div>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:12px 16px 16px;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="height:68px;border-radius:0.75rem;background:oklch(0.55 0.22 25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 10px oklch(0.55 0.22 25 / 0.3)">
+            <span style="font:800 19px/1.1 'Inter',sans-serif;letter-spacing:0.02em;color:oklch(1 0 0)">SAVE &amp; SEND REPORT</span>
+            <span style="font:500 13px/1 'Inter',sans-serif;color:oklch(1 0 0 / 0.9)">Tipigan ngan ipadara</span>
+          </div>
+          <span style="font:400 11.5px/1.4 'Inter',sans-serif;color:oklch(0.64 0.012 260);text-align:center">Saved instantly. Relaying starts on its own — you can close the app.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="b06" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">06</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">SUBMITTED</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">No green tick, no "sent" language. The confirmation is grey because grey is the truth: it is on this phone. The code is large enough to read aloud over a radio.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">9:44</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_full</span>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;gap:12px;padding:13px 16px 14px;background:oklch(0.50 0.014 260 / 0.08);border-left:4px solid oklch(0.50 0.014 260);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:38px;height:38px;border-radius:0.6rem;background:oklch(1 0 0);display:flex;align-items:center;justify-content:center;border:1px solid oklch(0.90 0.008 250)"><span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.50 0.014 260)">smartphone</span></span>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.50 0.014 260)">SAVED ON THIS PHONE</span>
+            <span style="font:500 14px/1.4 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Waiting for a nearby phone to carry it.</span>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px">
+          <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:9px;padding:20px 16px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.50 0.014 260)">YOUR EMERGENCY CODE</span>
+            <span style="font:600 30px/1.1 'IBM Plex Mono',monospace;letter-spacing:0.01em;color:oklch(0.22 0.015 260)">{{ emergencyCode }}</span>
+            <span style="font:400 13px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260);text-align:center;max-width:280px">Write this down or say it on the radio. It works even if your phone dies.</span>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <span style="display:flex;align-items:center;gap:6px;height:44px;padding:0 14px;border-radius:0.6rem;border:1.5px solid oklch(0.90 0.008 250);font:600 14px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:19px;line-height:1">content_copy</span>Copy</span>
+              <span style="display:flex;align-items:center;gap:6px;height:44px;padding:0 14px;border-radius:0.6rem;border:1.5px solid oklch(0.90 0.008 250);font:600 14px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:19px;line-height:1">volume_up</span>Read aloud</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:11px;padding:15px 15px 16px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">WHAT HAPPENS NEXT</span>
+            <div style="display:flex;gap:11px">
+              <span style="flex:none;width:26px;height:26px;border-radius:999px;background:oklch(0.50 0.014 260);color:oklch(1 0 0);display:flex;align-items:center;justify-content:center;font:700 13px/1 'Inter',sans-serif">1</span>
+              <span style="flex:1;font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="font-weight:700">Now —</span> your report sits on this phone, encrypted.</span>
+            </div>
+            <div style="display:flex;gap:11px">
+              <span style="flex:none;width:26px;height:26px;border-radius:999px;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);color:oklch(0.50 0.014 260);display:flex;align-items:center;justify-content:center;font:700 13px/1 'Inter',sans-serif">2</span>
+              <span style="flex:1;font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">When a Bulig phone comes within ~80 m, it takes a copy and carries it.</span>
+            </div>
+            <div style="display:flex;gap:11px">
+              <span style="flex:none;width:26px;height:26px;border-radius:999px;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);color:oklch(0.50 0.014 260);display:flex;align-items:center;justify-content:center;font:700 13px/1 'Inter',sans-serif">3</span>
+              <span style="flex:1;font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">The first phone that finds signal uploads it to the command center.</span>
+            </div>
+            <div style="display:flex;gap:11px">
+              <span style="flex:none;width:26px;height:26px;border-radius:999px;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);color:oklch(0.50 0.014 260);display:flex;align-items:center;justify-content:center;font:700 13px/1 'Inter',sans-serif">4</span>
+              <span style="flex:1;font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">You get a delivery confirmation only when they truly have it.</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:11px;padding:13px;background:oklch(0.95 0.03 250);border:1px solid oklch(0.52 0.16 250 / 0.35);border-radius:0.75rem">
+            <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1.15;color:oklch(0.44 0.17 252)">bluetooth_searching</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+              <span style="font:700 14px/1.2 'Inter',sans-serif;color:oklch(0.30 0.09 252)">Keep Bluetooth on</span>
+              <span style="font:400 13px/1.4 'Inter',sans-serif;color:oklch(0.34 0.07 252)">Staying near other people — an evacuation center, a street with neighbours — makes delivery much more likely.</span>
+            </div>
+          </div>
+          <span style="flex:1"></span>
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px">
+            <div style="height:56px;border-radius:0.75rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center"><span style="font:700 16px/1 'Inter',sans-serif;color:oklch(1 0 0)">Track this report</span></div>
+            <div style="height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font:600 16px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Back to home</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b07" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">07</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">MY REPORTS</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Every row carries its own delivery state — chip colour, chip text, chip icon, plus a plain-language line beneath. Sorted newest first; undelivered never sinks below delivered.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">15:07</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_5_bar</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 16px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 18px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">My reports</span>
+            <span style="font:500 13px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">An akon mga report</span>
+          </div>
+          <span style="flex:none;font:600 13px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">4 total</span>
+        </div>
+        <div style="flex:none;display:flex;gap:12px;padding:12px 16px;background:oklch(0.70 0.17 65 / 0.11);border-left:4px solid oklch(0.70 0.17 65);border-bottom:1px solid oklch(0.70 0.17 65 / 0.3)">
+          <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1.1;color:oklch(0.70 0.17 65)">hourglass_top</span>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font:800 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.48 0.14 62)">PENDING DELIVERY</span>
+            <span style="font:500 14px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">{{ pendingCount }} reports waiting to be delivered.</span>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:14px 16px">
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:13px 14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.55 0.22 25);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.50 0.014 260)">flood</span>
+              <span style="flex:1;font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.55 0.22 25);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">error</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">CRITICAL</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.60 0.15 250 / 0.1);border:1px solid oklch(0.60 0.15 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.60 0.15 250)">hub</span><span style="font:700 11px/1 'Inter',sans-serif;letter-spacing:0.03em;color:oklch(0.44 0.13 252)">RELAYED · 3 PHONES</span></span>
+              <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">15:02</span>
+            </div>
+            <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Copies are travelling. Not yet delivered to the command center.</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">{{ emergencyCode }}</span>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:13px 14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.65 0.19 55);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.50 0.014 260)">construction</span>
+              <span style="flex:1;font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Infrastructure damage</span>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.65 0.19 55);color:oklch(0.20 0.04 50)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">change_history</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">HIGH</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.50 0.014 260 / 0.09);border:1px solid oklch(0.90 0.008 250)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.50 0.014 260)">smartphone</span><span style="font:700 11px/1 'Inter',sans-serif;letter-spacing:0.03em;color:oklch(0.42 0.014 260)">SAVED ON THIS PHONE</span></span>
+              <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">14:48</span>
+            </div>
+            <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.50 0.014 260)">No phone has taken a copy yet. It stays here until one does.</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">BLG-2026-0416</span>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:13px 14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.75 0.15 90);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.50 0.014 260)">person_search</span>
+              <span style="flex:1;font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Missing person</span>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.75 0.15 90);color:oklch(0.24 0.05 85)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">square</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">MODERATE</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.62 0.16 150 / 0.1);border:1px solid oklch(0.62 0.16 150 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">check_circle</span><span style="font:700 11px/1 'Inter',sans-serif;letter-spacing:0.03em;color:oklch(0.42 0.12 152)">DELIVERED</span></span>
+              <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">Aug 25</span>
+            </div>
+            <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Command center has it. Responder Tanod R. Cinco assigned.</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">BLG-2026-0402</span>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:13px 14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.65 0.10 200);border-radius:0.75rem;opacity:0.78">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.50 0.014 260)">medical_services</span>
+              <span style="flex:1;font:700 16px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Medical</span>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.65 0.10 200);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">circle</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">LOW</span></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.62 0.16 150 / 0.1);border:1px solid oklch(0.62 0.16 150 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">task_alt</span><span style="font:700 11px/1 'Inter',sans-serif;letter-spacing:0.03em;color:oklch(0.42 0.12 152)">RESOLVED</span></span>
+              <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">Aug 24</span>
+            </div>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">BLG-2026-0389</span>
+          </div>
+        </div>
+        <div style="flex:none;height:74px;display:flex;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">home</span>
+            <span style="font:500 11px/1 'Inter',sans-serif">Home</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.44 0.17 252);border-top:2px solid oklch(0.44 0.17 252);margin-top:-1px">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">description</span>
+            <span style="font:700 11px/1 'Inter',sans-serif">My reports</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">hub</span>
+            <span style="font:500 11px/1 'Inter',sans-serif">Mesh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b08" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">08</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">REPORT DETAIL</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">The timeline is the whole screen. Completed steps are solid, the current step is ringed, future steps are hollow and explicitly labelled "not yet" — never pre-filled with optimistic ticks.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">15:08</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_5_bar</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1">arrow_back</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 17px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.50 0.014 260)">{{ emergencyCode }}</span>
+          </div>
+          <span style="flex:none;display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.4rem;background:oklch(0.55 0.22 25);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">error</span><span style="font:800 11px/1 'Inter',sans-serif;letter-spacing:0.06em">CRITICAL</span></span>
+        </div>
+        <div style="flex:none;display:flex;gap:12px;padding:13px 16px 14px;background:oklch(0.60 0.15 250 / 0.1);border-left:4px solid oklch(0.60 0.15 250);border-bottom:1px solid oklch(0.60 0.15 250 / 0.3)">
+          <span style="flex:none;width:38px;height:38px;border-radius:0.6rem;background:oklch(1 0 0);display:flex;align-items:center;justify-content:center;border:1px solid oklch(0.60 0.15 250 / 0.4)"><span style="font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.60 0.15 250)">hub</span></span>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.42 0.13 252)">RELAYED — NOT YET DELIVERED</span>
+            <span style="font:500 14px/1.4 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Passed to 3 nearby phones.</span>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:16px">
+          <div style="flex:none;display:flex;flex-direction:column;gap:14px;padding:16px 15px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">DELIVERY TIMELINE</span>
+            <div style="display:flex;gap:13px">
+              <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <span style="width:28px;height:28px;border-radius:999px;background:oklch(0.50 0.014 260);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1;color:oklch(1 0 0)">smartphone</span></span>
+                <span style="flex:1;width:2px;background:oklch(0.60 0.15 250)"></span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;padding-bottom:6px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Created on your phone</span>
+                <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Saved offline, encrypted</span>
+                <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">15:02 · Aug 27</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:13px;margin-top:-14px">
+              <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <span style="width:28px;height:28px;border-radius:999px;background:oklch(0.60 0.15 250);border:3px solid oklch(0.60 0.15 250 / 0.25);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1;color:oklch(1 0 0)">hub</span></span>
+                <span style="flex:1;width:2px;background:oklch(0.90 0.008 250)"></span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:5px;padding-bottom:6px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Relayed via 3 phones</span>
+                <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Each hop is a phone that took a copy onward</span>
+                <div style="display:flex;flex-direction:column;gap:4px;margin-top:2px;padding:9px 10px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.5rem">
+                  <span style="font:500 12.5px/1.3 'IBM Plex Mono',monospace;color:oklch(0.42 0.014 260)">hop 1 · phone-7C4A · 15:04</span>
+                  <span style="font:500 12.5px/1.3 'IBM Plex Mono',monospace;color:oklch(0.42 0.014 260)">hop 2 · phone-B119 · 15:06</span>
+                  <span style="font:500 12.5px/1.3 'IBM Plex Mono',monospace;color:oklch(0.42 0.014 260)">hop 3 · phone-2E80 · 15:07</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:13px;margin-top:-14px">
+              <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <span style="width:28px;height:28px;border-radius:999px;background:oklch(1 0 0);border:2px dashed oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1;color:oklch(0.64 0.012 260)">cloud_upload</span></span>
+                <span style="flex:1;width:2px;background:oklch(0.90 0.008 250)"></span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;padding-bottom:6px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Delivered to command center</span>
+                <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Not yet — waiting for a phone with signal</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:13px;margin-top:-14px">
+              <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px">
+                <span style="width:28px;height:28px;border-radius:999px;background:oklch(1 0 0);border:2px dashed oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1;color:oklch(0.64 0.012 260)">badge</span></span>
+                <span style="flex:1;width:2px;background:oklch(0.90 0.008 250)"></span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px;padding-bottom:6px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Responder assigned</span>
+                <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Not yet</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:13px;margin-top:-14px">
+              <div style="flex:none;display:flex;flex-direction:column;align-items:center">
+                <span style="width:28px;height:28px;border-radius:999px;background:oklch(1 0 0);border:2px dashed oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1;color:oklch(0.64 0.012 260)">task_alt</span></span>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+                <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Resolved</span>
+                <span style="font:400 13px/1.35 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Not yet</span>
+              </div>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:11px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="flex:none;font-family:'Material Symbols Outlined';font-size:20px;line-height:1.15;color:oklch(0.50 0.014 260)">groups</span>
+            <span style="flex:1;font:400 13.5px/1.4 'Inter',sans-serif;color:oklch(0.22 0.015 260)">5 affected · 2 children · 1 elderly · 1 cannot walk alone · marked life-threatening</span>
+          </div>
+          <span style="flex:1"></span>
+          <div style="flex:none;height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center;gap:8px"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.22 0.015 260)">refresh</span><span style="font:600 15px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Check for updates</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b09" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">09</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">MESH STATUS</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">The invisible made visible. The headline is not a network graph — it is the sentence "you are carrying 2 reports for your neighbours", stated as plainly as possible.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">15:09</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">wifi_off</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_5_bar</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 16px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 18px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Bulig mesh</span>
+            <span style="font:500 13px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">An mesh han Bulig</span>
+          </div>
+          <span style="flex:none;display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.52 0.16 250 / 0.1);border:1px solid oklch(0.52 0.16 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.44 0.17 252)">bluetooth_connected</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">ACTIVE</span></span>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:13px 16px">
+          <div style="flex:none;position:relative;height:158px;border-radius:0.75rem;background:oklch(0.44 0.17 252);overflow:hidden;display:flex;align-items:center;justify-content:center">
+            <div style="position:absolute;width:118px;height:118px;border-radius:999px;border:1.5px solid oklch(1 0 0 / 0.28);animation:bulig-pulse 3.4s ease-out infinite"></div>
+            <div style="position:absolute;width:118px;height:118px;border-radius:999px;border:1.5px solid oklch(1 0 0 / 0.28);animation:bulig-pulse 3.4s ease-out infinite 1.7s"></div>
+            <div style="position:absolute;left:52px;top:44px;width:12px;height:12px;border-radius:999px;background:oklch(1 0 0 / 0.9)"></div>
+            <div style="position:absolute;right:58px;top:56px;width:12px;height:12px;border-radius:999px;background:oklch(1 0 0 / 0.9)"></div>
+            <div style="position:absolute;left:74px;bottom:40px;width:12px;height:12px;border-radius:999px;background:oklch(1 0 0 / 0.9)"></div>
+            <div style="position:absolute;right:46px;bottom:52px;width:12px;height:12px;border-radius:999px;background:oklch(1 0 0 / 0.55)"></div>
+            <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:16px 20px;border-radius:0.75rem;background:oklch(0.44 0.17 252 / 0.55);border:1px solid oklch(1 0 0 / 0.25)">
+              <span style="font:800 46px/1 'Inter',sans-serif;color:oklch(1 0 0)">{{ nearbyPhones }}</span>
+              <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(1 0 0 / 0.92)">BULIG PHONES NEARBY</span>
+              <span style="font:500 12.5px/1 'Inter',sans-serif;color:oklch(1 0 0 / 0.8)">within about 80 metres</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:12px;padding:13px;background:oklch(0.95 0.03 250);border:1px solid oklch(0.52 0.16 250 / 0.35);border-radius:0.75rem">
+            <span style="flex:none;font-family:'Material Symbols Outlined';font-size:26px;line-height:1.1;color:oklch(0.44 0.17 252)">volunteer_activism</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+              <span style="font:800 17px/1.25 'Inter',sans-serif;color:oklch(0.26 0.09 252)">You are carrying {{ carryingForOthers }} reports for other people</span>
+              <span style="font:400 13.5px/1.45 'Inter',sans-serif;color:oklch(0.34 0.07 252)">Your phone is holding your neighbours' emergencies and will hand them on the moment it can. You do not have to do anything.</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;gap:10px">
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+              <span style="font:700 24px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">7</span>
+              <span style="font:500 12px/1.25 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Reports passed on today</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+              <span style="font:700 24px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">2</span>
+              <span style="font:500 12px/1.25 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Delivered because of you</span>
+            </div>
+          </div>
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:9px">
+            <span style="flex:none;font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">NEARBY DEVICES</span>
+            <div style="flex:none;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-bottom:1px solid oklch(0.90 0.008 250)">
+                <span style="flex:none;font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.62 0.16 150)">smartphone</span>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <span style="font:600 14px/1.2 'IBM Plex Mono',monospace;color:oklch(0.22 0.015 260)">phone-7C4A</span>
+                  <span style="font:400 12px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">strong link · 1 hop from signal</span>
+                </div>
+                <span style="flex:none;padding:4px 8px;border-radius:0.4rem;background:oklch(0.62 0.16 150 / 0.12);font:700 10.5px/1 'Inter',sans-serif;letter-spacing:0.05em;color:oklch(0.42 0.12 152)">CAN UPLOAD</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;padding:9px 12px;border-bottom:1px solid oklch(0.90 0.008 250)">
+                <span style="flex:none;font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.52 0.16 250)">smartphone</span>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <span style="font:600 14px/1.2 'IBM Plex Mono',monospace;color:oklch(0.22 0.015 260)">phone-B119</span>
+                  <span style="font:400 12px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">strong link · 2 hops from signal</span>
+                </div>
+                <span style="flex:none;padding:4px 8px;border-radius:0.4rem;background:oklch(0.52 0.16 250 / 0.12);font:700 10.5px/1 'Inter',sans-serif;letter-spacing:0.05em;color:oklch(0.44 0.17 252)">RELAYING</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:11px;padding:9px 12px">
+                <span style="flex:none;font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.52 0.16 250)">smartphone</span>
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <span style="font:600 14px/1.2 'IBM Plex Mono',monospace;color:oklch(0.22 0.015 260)">phone-2E80</span>
+                  <span style="font:400 12px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">weak link · hops unknown</span>
+                </div>
+                <span style="flex:none;padding:4px 8px;border-radius:0.4rem;background:oklch(0.52 0.16 250 / 0.12);font:700 10.5px/1 'Inter',sans-serif;letter-spacing:0.05em;color:oklch(0.44 0.17 252)">RELAYING</span>
+              </div>
+            </div>
+            <span style="flex:1"></span>
+            <span style="flex:none;font:400 11px/1.4 'Inter',sans-serif;color:oklch(0.64 0.012 260)">phone-F03D dropped out of range 40 s ago. Device names are random and change daily — no resident names, numbers or locations are ever shown.</span>
+          </div>
+        </div>
+        <div style="flex:none;height:74px;display:flex;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">home</span>
+            <span style="font:500 11px/1 'Inter',sans-serif">Home</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">description</span>
+            <span style="font:500 11px/1 'Inter',sans-serif">My reports</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:oklch(0.44 0.17 252);border-top:2px solid oklch(0.44 0.17 252);margin-top:-1px">
+            <span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1">hub</span>
+            <span style="font:700 11px/1 'Inter',sans-serif">Mesh</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:26px">
+  <div style="display:flex;align-items:center;gap:14px">
+    <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.12em;color:oklch(0.22 0.015 260)">RESPONDER APP · BARANGAY TANOD &amp; BDRRMC</span>
+    <span style="flex:1;height:1px;background:oklch(0.90 0.008 250)"></span>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:44px 28px;align-items:flex-start">
+
+    <div id="b10" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">10</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">MY ASSIGNMENTS</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Strict priority order, never reorderable. Each row answers the four questions a responder asks while walking: what, how bad, how far, how old — and whether the report reached them late over the mesh.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">15:12</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">signal_cellular_alt_2_bar</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_5_bar</span>
+          </div>
+        </div>
+        <div style="flex:none;height:64px;display:flex;align-items:center;gap:11px;padding:0 16px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:40px;height:40px;border-radius:0.5rem;background:oklch(0.95 0.03 250);border:1px solid oklch(0.52 0.16 250 / 0.3);display:flex;align-items:center;justify-content:center;font:700 14px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">RC</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 17px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">My assignments</span>
+            <span style="font:500 12.5px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Tanod R. Cinco · Zone 2</span>
+          </div>
+          <span style="flex:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:24px;line-height:1">filter_list</span></span>
+        </div>
+        <div style="flex:none;display:flex;gap:12px;padding:12px 16px;background:oklch(0.60 0.15 250 / 0.1);border-left:4px solid oklch(0.60 0.15 250);border-bottom:1px solid oklch(0.60 0.15 250 / 0.3)">
+          <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1.1;color:oklch(0.60 0.15 250);animation:bulig-spin 1.6s linear infinite">progress_activity</span>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font:800 12px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.42 0.13 252)">SYNCING</span>
+            <span style="font:500 14px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Uploading 3 pending reports…</span>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:14px 16px">
+          <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.55 0.22 25);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.55 0.22 25);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">error</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">CRITICAL</span></span>
+              <span style="flex:1"></span>
+              <span style="font:500 12.5px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">10 min ago</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:24px;line-height:1;color:oklch(0.22 0.015 260)">flood</span>
+              <span style="flex:1;font:700 18px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+            </div>
+            <span style="font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">5 affected · 2 children · 1 elderly · life-threatening</span>
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="display:flex;align-items:center;gap:5px;font:600 13.5px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1;color:oklch(0.50 0.014 260)">near_me</span>420 m · Purok 4</span>
+              <span style="display:flex;align-items:center;gap:5px;font:600 13.5px/1 'Inter',sans-serif;color:oklch(0.44 0.13 252)"><span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1">hub</span>via 3 hops</span>
+            </div>
+            <div style="height:50px;border-radius:0.6rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center"><span style="font:700 15px/1 'Inter',sans-serif;color:oklch(1 0 0)">Open assignment</span></div>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.65 0.19 55);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.65 0.19 55);color:oklch(0.20 0.04 50)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">change_history</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">HIGH</span></span>
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.52 0.16 250 / 0.12)"><span style="font:700 10.5px/1 'Inter',sans-serif;letter-spacing:0.05em;color:oklch(0.44 0.17 252)">EN ROUTE</span></span>
+              <span style="flex:1"></span>
+              <span style="font:500 12.5px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">34 min ago</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:24px;line-height:1;color:oklch(0.22 0.015 260)">emergency_home</span>
+              <span style="flex:1;font:700 18px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Trapped person</span>
+            </div>
+            <span style="font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">1 affected · collapsed roof section</span>
+            <span style="display:flex;align-items:center;gap:5px;font:600 13.5px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1;color:oklch(0.50 0.014 260)">near_me</span>880 m · Purok 2</span>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.75 0.15 90);border-radius:0.75rem">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.75 0.15 90);color:oklch(0.24 0.05 85)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">square</span><span style="font:800 10.5px/1 'Inter',sans-serif;letter-spacing:0.06em">MODERATE</span></span>
+              <span style="flex:1"></span>
+              <span style="font:500 12.5px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">1 h 20 min ago</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="flex:none;font-family:'Material Symbols Outlined';font-size:24px;line-height:1;color:oklch(0.22 0.015 260)">construction</span>
+              <span style="flex:1;font:700 18px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Infrastructure</span>
+            </div>
+            <span style="font:400 14px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Footbridge handrail washed out · no injuries reported</span>
+            <span style="display:flex;align-items:center;gap:5px;font:600 13.5px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:17px;line-height:1;color:oklch(0.50 0.014 260)">near_me</span>1.4 km · Purok 6</span>
+          </div>
+          <span style="flex:1"></span>
+          <span style="flex:none;font:400 11.5px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260);text-align:center">Reports may arrive out of order over the mesh. Age is measured from when the resident filed it, not when you received it.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="b11" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">11</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">ASSIGNMENT DETAIL</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">The vulnerability breakdown is above the fold because it changes what a responder brings. Priority reasoning is shown, not asserted, so a responder can override it with judgement.</p>
+      <div style="width:390px;height:844px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:oklch(1 0 0)">
+          <span style="font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">15:13</span>
+          <div style="display:flex;align-items:center;gap:7px;color:oklch(0.50 0.014 260)">
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">signal_cellular_alt_2_bar</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.52 0.16 250)">bluetooth</span>
+            <span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">battery_5_bar</span>
+          </div>
+        </div>
+        <div style="flex:none;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;background:oklch(1 0 0);border-bottom:1px solid oklch(0.90 0.008 250)">
+          <span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:oklch(0.22 0.015 260)"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1">arrow_back</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:700 17px/1.1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.50 0.014 260)">{{ emergencyCode }} · filed 15:02</span>
+          </div>
+          <span style="flex:none;display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.4rem;background:oklch(0.55 0.22 25);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1">error</span><span style="font:800 11px/1 'Inter',sans-serif;letter-spacing:0.06em">CRITICAL</span></span>
+        </div>
+        <div style="flex:none;position:relative;height:172px;background:oklch(0.94 0.012 230);border-bottom:1px solid oklch(0.90 0.008 250);overflow:hidden">
+          <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,oklch(0.22 0.015 260 / 0.055) 0 1px,transparent 1px 26px),repeating-linear-gradient(90deg,oklch(0.22 0.015 260 / 0.055) 0 1px,transparent 1px 26px)"></div>
+          <div style="position:absolute;left:-20px;right:-20px;top:64px;height:20px;background:oklch(1 0 0 / 0.8);transform:rotate(-3deg)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:52px;background:oklch(0.70 0.10 230 / 0.42);border-top:2px solid oklch(0.62 0.12 230 / 0.55)"></div>
+          <div style="position:absolute;left:150px;top:36px;width:104px;height:104px;border-radius:999px;background:oklch(0.55 0.22 25 / 0.12);border:1.5px dashed oklch(0.55 0.22 25 / 0.6)"></div>
+          <div style="position:absolute;left:192px;top:78px;width:20px;height:20px;border-radius:999px;background:oklch(0.55 0.22 25);border:3px solid oklch(1 0 0);box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.4)"></div>
+          <div style="position:absolute;left:48px;bottom:64px;width:14px;height:14px;border-radius:999px;background:oklch(0.44 0.17 252);border:3px solid oklch(1 0 0)"></div>
+          <span style="position:absolute;left:36px;bottom:44px;font:600 10.5px/1 'IBM Plex Mono',monospace;color:oklch(0.30 0.09 252)">YOU</span>
+          <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px;padding:9px 11px;background:oklch(1 0 0 / 0.95);border:1px solid oklch(0.90 0.008 250);border-radius:0.6rem">
+            <span style="font:700 14px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">420 m</span>
+            <span style="font:400 11px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">±38 m accuracy</span>
+          </div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 16px">
+          <div style="flex:none;display:flex;flex-direction:column;gap:6px;padding:13px 14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">RESIDENT'S WORDS</span>
+            <span style="font:400 15px/1.45 'Inter',sans-serif;color:oklch(0.22 0.015 260)">"Tubig abot na sa hita sa Purok 4. Duha ka bata ug usa ka lola sa atop."</span>
+            <span style="font:400 12px/1.3 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Waray-Waray · not translated by the app</span>
+          </div>
+          <div style="flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.6rem">
+              <span style="font:700 20px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">5</span>
+              <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">affected</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:oklch(0.55 0.22 25 / 0.06);border:1px solid oklch(0.55 0.22 25 / 0.3);border-radius:0.6rem">
+              <span style="font:700 20px/1 'Inter',sans-serif;color:oklch(0.42 0.18 27)">2</span>
+              <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.42 0.18 27)">children</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:oklch(0.55 0.22 25 / 0.06);border:1px solid oklch(0.55 0.22 25 / 0.3);border-radius:0.6rem">
+              <span style="font:700 20px/1 'Inter',sans-serif;color:oklch(0.42 0.18 27)">1</span>
+              <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.42 0.18 27)">elderly</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;background:oklch(0.55 0.22 25 / 0.06);border:1px solid oklch(0.55 0.22 25 / 0.3);border-radius:0.6rem">
+              <span style="font:700 20px/1 'Inter',sans-serif;color:oklch(0.42 0.18 27)">1</span>
+              <span style="font:500 12.5px/1.2 'Inter',sans-serif;color:oklch(0.42 0.18 27)">cannot walk</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:13px 14px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font:700 12px/1 'Inter',sans-serif;letter-spacing:0.09em;color:oklch(0.50 0.014 260)">WHY CRITICAL</span>
+            <span style="display:flex;gap:8px;font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:17px;line-height:1.2;color:oklch(0.55 0.22 25)">check</span>Resident marked life-threatening</span>
+            <span style="display:flex;gap:8px;font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:17px;line-height:1.2;color:oklch(0.55 0.22 25)">check</span>3 of 5 affected are vulnerable</span>
+            <span style="display:flex;gap:8px;font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)"><span style="flex:none;font-family:'Material Symbols Outlined';font-size:17px;line-height:1.2;color:oklch(0.55 0.22 25)">check</span>Rising water · people on a roof</span>
+          </div>
+          <div style="flex:none;display:flex;gap:9px;padding:11px 13px;background:oklch(0.60 0.15 250 / 0.08);border:1px solid oklch(0.60 0.15 250 / 0.3);border-radius:0.75rem">
+            <span style="flex:none;font-family:'Material Symbols Outlined';font-size:18px;line-height:1.25;color:oklch(0.60 0.15 250)">hub</span>
+            <span style="flex:1;font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.34 0.07 252)">Reached the command center after 3 mesh hops, 5 min behind filing. The situation may have changed.</span>
+          </div>
+        </div>
+        <div style="flex:none;display:flex;flex-direction:column;gap:9px;padding:12px 16px 16px;background:oklch(1 0 0);border-top:1px solid oklch(0.90 0.008 250)">
+          <div style="height:64px;border-radius:0.75rem;background:oklch(0.62 0.16 150);display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-family:'Material Symbols Outlined';font-size:25px;line-height:1;color:oklch(1 0 0)">check_circle</span><span style="font:800 19px/1 'Inter',sans-serif;letter-spacing:0.02em;color:oklch(1 0 0)">ACCEPT</span></div>
+          <div style="height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font:600 15px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Decline — cannot reach</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="b12" style="display:flex;flex-direction:column;gap:9px;width:390px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.1em;color:oklch(0.52 0.16 250)">12</span>
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.06em;color:oklch(0.22 0.015 260)">ACTION BAR STATES</span>
+      </div>
+      <p style="margin:0;font:400 12px/1.5 'Inter',sans-serif;color:oklch(0.64 0.012 260)">One decision per state, 64 dp tall, full width, no swipe-to-confirm — gloves and rain defeat gestures. The next action is always the only filled button on screen.</p>
+      <div style="width:390px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem;padding:18px 16px;display:flex;flex-direction:column;gap:16px;box-shadow:0 2px 6px oklch(0.22 0.015 260 / 0.07)">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:oklch(0.64 0.012 260)">STATE 1 · ASSIGNED</span>
+          <div style="height:64px;border-radius:0.75rem;background:oklch(0.62 0.16 150);display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-family:'Material Symbols Outlined';font-size:25px;line-height:1;color:oklch(1 0 0)">check_circle</span><span style="font:800 19px/1 'Inter',sans-serif;color:oklch(1 0 0)">ACCEPT</span></div>
+          <div style="height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font:600 15px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Decline — cannot reach</span></div>
+        </div>
+        <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:oklch(0.64 0.012 260)">STATE 2 · ACCEPTED</span>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:oklch(0.62 0.16 150 / 0.1);border:1px solid oklch(0.62 0.16 150 / 0.35);border-radius:0.6rem"><span style="font-family:'Material Symbols Outlined';font-size:18px;line-height:1;color:oklch(0.62 0.16 150)">check_circle</span><span style="font:700 13px/1 'Inter',sans-serif;color:oklch(0.40 0.12 152)">ACCEPTED 15:14 · resident notified when signal allows</span></div>
+          <div style="height:64px;border-radius:0.75rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-family:'Material Symbols Outlined';font-size:25px;line-height:1;color:oklch(1 0 0)">directions_walk</span><span style="font:800 19px/1 'Inter',sans-serif;color:oklch(1 0 0)">EN ROUTE</span></div>
+        </div>
+        <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:oklch(0.64 0.012 260)">STATE 3 · EN ROUTE</span>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:oklch(0.52 0.16 250 / 0.1);border:1px solid oklch(0.52 0.16 250 / 0.35);border-radius:0.6rem"><span style="font-family:'Material Symbols Outlined';font-size:18px;line-height:1;color:oklch(0.44 0.17 252)">directions_walk</span><span style="font:700 13px/1 'Inter',sans-serif;color:oklch(0.36 0.12 252)">EN ROUTE · 6 min · 420 m to go</span></div>
+          <div style="height:64px;border-radius:0.75rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-family:'Material Symbols Outlined';font-size:25px;line-height:1;color:oklch(1 0 0)">location_on</span><span style="font:800 19px/1 'Inter',sans-serif;color:oklch(1 0 0)">ON SITE</span></div>
+        </div>
+        <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:oklch(0.64 0.012 260)">STATE 4 · ON SITE</span>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:oklch(0.52 0.16 250 / 0.1);border:1px solid oklch(0.52 0.16 250 / 0.35);border-radius:0.6rem"><span style="font-family:'Material Symbols Outlined';font-size:18px;line-height:1;color:oklch(0.44 0.17 252)">location_on</span><span style="font:700 13px/1 'Inter',sans-serif;color:oklch(0.36 0.12 252)">ON SITE since 15:26</span></div>
+          <div style="height:64px;border-radius:0.75rem;background:oklch(0.62 0.16 150);display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-family:'Material Symbols Outlined';font-size:25px;line-height:1;color:oklch(1 0 0)">task_alt</span><span style="font:800 19px/1 'Inter',sans-serif;color:oklch(1 0 0)">RESOLVED</span></div>
+          <div style="height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.65 0.19 55);display:flex;align-items:center;justify-content:center"><span style="font:600 15px/1 'Inter',sans-serif;color:oklch(0.48 0.15 52)">Needs more help — escalate</span></div>
+        </div>
+        <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:oklch(0.64 0.012 260)">STATE 5 · RESOLVED &amp; QUEUED OFFLINE</span>
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:oklch(0.70 0.17 65 / 0.11);border:1px solid oklch(0.70 0.17 65 / 0.45);border-radius:0.6rem"><span style="font-family:'Material Symbols Outlined';font-size:18px;line-height:1;color:oklch(0.70 0.17 65)">hourglass_top</span><span style="font:700 13px/1 'Inter',sans-serif;color:oklch(0.42 0.12 60)">RESOLVED on this phone · status not yet uploaded</span></div>
+          <div style="height:64px;border-radius:0.75rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center;gap:9px"><span style="font-family:'Material Symbols Outlined';font-size:23px;line-height:1;color:oklch(0.64 0.012 260)">check</span><span style="font:700 17px/1 'Inter',sans-serif;color:oklch(0.64 0.012 260)">CLOSED</span></div>
+        </div>
+        <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:0.08em;color:oklch(0.64 0.012 260)">DECLINE · CONFIRMATION SHEET</span>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:14px;background:oklch(0.98 0.004 250);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+            <span style="font:700 16px/1.25 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Decline this assignment?</span>
+            <span style="font:400 13.5px/1.4 'Inter',sans-serif;color:oklch(0.50 0.014 260)">It returns to the command center queue immediately, and to other responders when signal allows. Tell them why:</span>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">
+              <span style="padding:9px 12px;border-radius:0.5rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Road impassable</span>
+              <span style="padding:9px 12px;border-radius:0.5rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Already on another call</span>
+              <span style="padding:9px 12px;border-radius:0.5rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);font:600 13px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Too dangerous alone</span>
+            </div>
+            <div style="height:56px;border-radius:0.75rem;background:oklch(0.55 0.22 25);display:flex;align-items:center;justify-content:center"><span style="font:800 17px/1 'Inter',sans-serif;color:oklch(1 0 0)">DECLINE</span></div>
+            <div style="height:50px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font:600 15px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Keep it</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:26px">
+  <div style="display:flex;align-items:center;gap:14px">
+    <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.12em;color:oklch(0.22 0.015 260)">COMPONENT SHEET</span>
+    <span style="flex:1;height:1px;background:oklch(0.90 0.008 250)"></span>
+  </div>
+  <div id="cs" style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+    <div style="width:414px;display:flex;flex-direction:column;gap:14px;padding:20px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.08em;color:oklch(0.22 0.015 260)">PRIORITY CHIPS</span>
+        <span style="font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Colour + word + icon shape. Each shape is unique, so the set survives colour blindness and greyscale print.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:0.4rem;background:oklch(0.55 0.22 25);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">error</span><span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.06em">CRITICAL</span></span>
+          <span style="font:400 12.5px/1.3 'Inter',sans-serif;color:oklch(0.50 0.014 260)">octagon · life at risk now</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:0.4rem;background:oklch(0.65 0.19 55);color:oklch(0.20 0.04 50)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">change_history</span><span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.06em">HIGH</span></span>
+          <span style="font:400 12.5px/1.3 'Inter',sans-serif;color:oklch(0.50 0.014 260)">triangle · injury or entrapment</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:0.4rem;background:oklch(0.75 0.15 90);color:oklch(0.24 0.05 85)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">square</span><span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.06em">MODERATE</span></span>
+          <span style="font:400 12.5px/1.3 'Inter',sans-serif;color:oklch(0.50 0.014 260)">square · needs response today</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:0.4rem;background:oklch(0.65 0.10 200);color:oklch(1 0 0)"><span style="font-family:'Material Symbols Outlined';font-size:16px;line-height:1">circle</span><span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.06em">LOW</span></span>
+          <span style="font:400 12.5px/1.3 'Inter',sans-serif;color:oklch(0.50 0.014 260)">circle · report only, no injury</span>
+        </div>
+      </div>
+      <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.08em;color:oklch(0.22 0.015 260)">DELIVERY &amp; STATUS CHIPS</span>
+        <span style="font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Grey means nobody has it yet. Blue means moving. Green is reserved — only confirmed receipt earns green.</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.50 0.014 260 / 0.09);border:1px solid oklch(0.90 0.008 250)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.50 0.014 260)">smartphone</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.42 0.014 260)">SAVED ON THIS PHONE</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.60 0.15 250 / 0.1);border:1px solid oklch(0.60 0.15 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.60 0.15 250)">hub</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.44 0.13 252)">RELAYED · 3 PHONES</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.70 0.17 65 / 0.12);border:1px solid oklch(0.70 0.17 65 / 0.45)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.70 0.17 65)">hourglass_top</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.42 0.12 60)">PENDING</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.62 0.16 150 / 0.1);border:1px solid oklch(0.62 0.16 150 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">check_circle</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.42 0.12 152)">DELIVERED</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.52 0.16 250 / 0.12);border:1px solid oklch(0.52 0.16 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.44 0.17 252)">badge</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">RESPONDER ASSIGNED</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.52 0.16 250 / 0.12);border:1px solid oklch(0.52 0.16 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.44 0.17 252)">directions_walk</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">EN ROUTE</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.52 0.16 250 / 0.12);border:1px solid oklch(0.52 0.16 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.44 0.17 252)">location_on</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.44 0.17 252)">ON SITE</span></span>
+        <span style="display:flex;align-items:center;gap:5px;padding:6px 9px;border-radius:0.5rem;background:oklch(0.62 0.16 150 / 0.1);border:1px solid oklch(0.62 0.16 150 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:15px;line-height:1;color:oklch(0.62 0.16 150)">task_alt</span><span style="font:700 11px/1 'Inter',sans-serif;color:oklch(0.42 0.12 152)">RESOLVED</span></span>
+      </div>
+      <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.08em;color:oklch(0.22 0.015 260)">STEPPER</span>
+        <span style="font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260)">52 dp square targets, 4 dp apart. Minus is disabled at zero rather than hidden, so the control never changes shape.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid oklch(0.90 0.008 250);border-radius:0.6rem">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">People affected</span>
+            <span style="font:500 12px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">Pira ka tawo</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.22 0.015 260)">remove</span></span>
+            <span style="width:44px;text-align:center;font:700 22px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">5</span>
+            <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.95 0.03 250);border:1.5px solid oklch(0.52 0.16 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.44 0.17 252)">add</span></span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid oklch(0.90 0.008 250);border-radius:0.6rem">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Children</span>
+            <span style="font:500 12px/1.2 'Inter',sans-serif;color:oklch(0.50 0.014 260)">at zero — minus disabled</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.98 0.004 250);border:1.5px solid oklch(0.94 0.005 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.82 0.008 260)">remove</span></span>
+            <span style="width:44px;text-align:center;font:700 22px/1 'Inter',sans-serif;color:oklch(0.64 0.012 260)">0</span>
+            <span style="width:52px;height:52px;border-radius:0.6rem;background:oklch(0.95 0.03 250);border:1.5px solid oklch(0.52 0.16 250);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:26px;line-height:1;color:oklch(0.44 0.17 252)">add</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="width:414px;display:flex;flex-direction:column;gap:14px;padding:20px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-radius:0.75rem">
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.08em;color:oklch(0.22 0.015 260)">CONNECTIVITY BANNER · ALL SIX STATES</span>
+        <span style="font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Always visible, never collapsible. Icon, left rule colour, tint and wording all change together — no state is a recolour of another.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;gap:11px;padding:12px 13px;background:oklch(0.62 0.16 150 / 0.11);border-left:4px solid oklch(0.62 0.16 150);border-radius:0 0.5rem 0.5rem 0">
+          <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(1 0 0);border:1px solid oklch(0.62 0.16 150 / 0.4);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.62 0.16 150)">cloud_done</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.40 0.12 152)">ONLINE</span>
+            <span style="font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Connected to command center</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:11px;padding:12px 13px;background:oklch(0.70 0.17 65 / 0.11);border-left:4px solid oklch(0.70 0.17 65);border-radius:0 0.5rem 0.5rem 0">
+          <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(1 0 0);border:1px solid oklch(0.70 0.17 65 / 0.4);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.70 0.17 65)">signal_cellular_off</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.48 0.14 62)">OFFLINE</span>
+            <span style="font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Reports are saved and will be relayed to nearby phones</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:11px;padding:12px 13px;background:oklch(0.60 0.15 250 / 0.1);border-left:4px solid oklch(0.60 0.15 250);border-radius:0 0.5rem 0.5rem 0">
+          <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(1 0 0);border:1px solid oklch(0.60 0.15 250 / 0.4);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.60 0.15 250);animation:bulig-spin 1.6s linear infinite">progress_activity</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.42 0.13 252)">SYNCING</span>
+            <span style="font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Uploading 3 pending reports…</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:11px;padding:12px 13px;background:oklch(0.70 0.17 65 / 0.08);border-left:4px solid oklch(0.70 0.17 65);border-radius:0 0.5rem 0.5rem 0;border-top:1px dashed oklch(0.70 0.17 65 / 0.4);border-right:1px dashed oklch(0.70 0.17 65 / 0.4);border-bottom:1px dashed oklch(0.70 0.17 65 / 0.4)">
+          <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(1 0 0);border:1px solid oklch(0.70 0.17 65 / 0.4);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.70 0.17 65)">hourglass_top</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.48 0.14 62)">PENDING</span>
+            <span style="font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">{{ pendingCount }} reports waiting to be delivered</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:11px;padding:12px 13px;background:oklch(0.60 0.15 250 / 0.1);border-left:4px solid oklch(0.60 0.15 250);border-radius:0 0.5rem 0.5rem 0">
+          <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(1 0 0);border:1px solid oklch(0.60 0.15 250 / 0.4);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.60 0.15 250)">hub</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.42 0.13 252)">RELAYED — NOT DELIVERED</span>
+            <span style="font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Passed to 3 nearby phones</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:11px;padding:12px 13px;background:oklch(0.62 0.16 150 / 0.11);border-left:4px solid oklch(0.62 0.16 150);border-radius:0 0.5rem 0.5rem 0">
+          <span style="flex:none;width:34px;height:34px;border-radius:0.5rem;background:oklch(1 0 0);border:1px solid oklch(0.62 0.16 150 / 0.4);display:flex;align-items:center;justify-content:center"><span style="font-family:'Material Symbols Outlined';font-size:20px;line-height:1;color:oklch(0.62 0.16 150)">check_circle</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+            <span style="font:800 11.5px/1 'Inter',sans-serif;letter-spacing:0.1em;color:oklch(0.40 0.12 152)">SYNCED</span>
+            <span style="font:500 13.5px/1.35 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Delivered to command center</span>
+          </div>
+        </div>
+      </div>
+      <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.08em;color:oklch(0.22 0.015 260)">BUTTONS</span>
+        <span style="font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Emergency 212 dp · primary 60 dp · secondary 52 dp · destructive reserved for decline and delete.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="height:60px;border-radius:0.75rem;background:oklch(0.44 0.17 252);display:flex;align-items:center;justify-content:center"><span style="font:800 17px/1 'Inter',sans-serif;color:oklch(1 0 0)">PRIMARY ACTION</span></div>
+        <div style="height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.90 0.008 250);display:flex;align-items:center;justify-content:center"><span style="font:600 16px/1 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Secondary action</span></div>
+        <div style="height:52px;border-radius:0.75rem;background:oklch(1 0 0);border:1.5px solid oklch(0.55 0.22 25);display:flex;align-items:center;justify-content:center"><span style="font:700 16px/1 'Inter',sans-serif;color:oklch(0.46 0.20 26)">Destructive action</span></div>
+        <div style="height:52px;border-radius:0.75rem;background:oklch(0.96 0.003 250);border:1.5px solid oklch(0.94 0.005 250);display:flex;align-items:center;justify-content:center"><span style="font:600 16px/1 'Inter',sans-serif;color:oklch(0.78 0.008 260)">Disabled</span></div>
+      </div>
+      <span style="height:1px;background:oklch(0.90 0.008 250)"></span>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font:700 13px/1 'Inter',sans-serif;letter-spacing:0.08em;color:oklch(0.22 0.015 260)">LIST ROWS</span>
+        <span style="font:400 12px/1.45 'Inter',sans-serif;color:oklch(0.64 0.012 260)">Resident row leads with delivery state; responder row leads with priority. Both keep a 5 dp priority rule on the left edge.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:11px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.55 0.22 25);border-radius:0.6rem">
+          <span style="flex:none;font-family:'Material Symbols Outlined';font-size:21px;line-height:1;color:oklch(0.50 0.014 260)">flood</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Flood / Baha</span>
+            <span style="font:400 12px/1 'IBM Plex Mono',monospace;color:oklch(0.64 0.012 260)">BLG-2026-0417 · 15:02</span>
+          </div>
+          <span style="flex:none;display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:0.4rem;background:oklch(0.60 0.15 250 / 0.1);border:1px solid oklch(0.60 0.15 250 / 0.35)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1;color:oklch(0.60 0.15 250)">hub</span><span style="font:700 10.5px/1 'Inter',sans-serif;color:oklch(0.44 0.13 252)">RELAYED</span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;padding:12px 13px;background:oklch(1 0 0);border:1px solid oklch(0.90 0.008 250);border-left:5px solid oklch(0.65 0.19 55);border-radius:0.6rem">
+          <span style="flex:none;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:0.4rem;background:oklch(0.65 0.19 55);color:oklch(0.20 0.04 50)"><span style="font-family:'Material Symbols Outlined';font-size:14px;line-height:1">change_history</span><span style="font:800 10.5px/1 'Inter',sans-serif">HIGH</span></span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+            <span style="font:700 15px/1.2 'Inter',sans-serif;color:oklch(0.22 0.015 260)">Trapped person</span>
+            <span style="font:400 12.5px/1 'Inter',sans-serif;color:oklch(0.50 0.014 260)">880 m · 34 min ago</span>
+          </div>
+          <span style="flex:none;font-family:'Material Symbols Outlined';font-size:22px;line-height:1;color:oklch(0.64 0.012 260)">chevron_right</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;nearbyPhones&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;min&quot;:0,&quot;max&quot;:12,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Mesh&quot;},&quot;carryingForOthers&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:9,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Mesh&quot;},&quot;pendingCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:9,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Delivery&quot;},&quot;emergencyCode&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;BLG-2026-0417&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Delivery&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props || {};
+    return {
+      nearbyPhones: p.nearbyPhones ?? 4,
+      carryingForOthers: p.carryingForOthers ?? 2,
+      pendingCount: p.pendingCount ?? 2,
+      emergencyCode: p.emergencyCode ?? 'BLG-2026-0417'
+    };
+  }
+}
+</script>
+</body>
+</html>

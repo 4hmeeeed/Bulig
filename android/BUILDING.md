@@ -1,0 +1,335 @@
+# Building the Android app
+
+## What is verified, and what is not
+
+| Module | Built and tested in CI / this repo? |
+|---|---|
+| `:core-mesh` | **Yes** — 69 tests |
+| `:data` | **Yes** — 60 tests |
+| `:app` | **No.** Authored, never compiled. Slice 1 only. |
+
+`:app` needs the Android Gradle Plugin, which resolves from Google's Maven. Any
+machine without the Android SDK — including the environment this was written in
+— cannot build it. `settings.gradle.kts` therefore includes `:app` **only** when
+an SDK is present, so `gradle test` still works everywhere else.
+
+That split is deliberate. Everything that decides what a resident is told, how
+packets dedupe, what syncs first, and what colour a delivery chip is has already
+been tested off-device. `:app` renders those decisions; it does not make them.
+
+**Expect this slice to need fixes on first build.** It has never seen a
+compiler. The point of shipping one screen rather than twelve is that you find
+the version and toolchain problems once, not thirty times.
+
+---
+
+## First build
+
+```bash
+# 1. Open android/ in Android Studio (Ladybug 2024.2.1 or newer).
+#    It writes local.properties with your SDK path, which is what makes
+#    settings.gradle.kts include :app.
+
+# 2. Or from the CLI, if the SDK is already installed:
+export ANDROID_HOME=$HOME/Android/Sdk
+cd android
+./gradlew :app:assembleDebug
+```
+
+Confirm the pure-Kotlin modules still pass, which they should regardless:
+
+```bash
+cd android && gradle test
+```
+
+---
+
+## Where this is most likely to break
+
+Ordered by how likely I think each is. None of these are guesses about *your*
+setup — they are the places where an uncompiled Compose module usually fails.
+
+### 1. Compose BOM ↔ Kotlin version
+
+`app/build.gradle.kts` pins Compose BOM `2024.12.01` against Kotlin `2.0.21` and
+AGP `8.7.3`. Kotlin 2.0 moved the Compose compiler into the
+`org.jetbrains.kotlin.plugin.compose` plugin, which is applied — but if Android
+Studio ships a newer Kotlin, the plugin version must move with it.
+
+**If it fails:** match `kotlin("android")` and `kotlin("plugin.compose")` to the
+Kotlin version the IDE reports, and bump the BOM to the current stable.
+
+### 2. Missing Material icons
+
+`Icons.Filled.Sos`, `.Hub`, `.SignalCellularOff`, `.HourglassTop`,
+`.ChangeHistory`, `.Square`, `.Circle`, `.TaskAlt`, `.Badge`, `.DirectionsWalk`
+all come from `material-icons-extended`, which is declared. Names occasionally
+differ between versions.
+
+**If it fails:** the icon names are isolated in exactly two places —
+`iconFor()` in `ConnectivityBanner.kt` and `deliveryIcon()` in `Chips.kt`. Fix
+them there; nothing else references an icon directly.
+
+**Do not substitute a shape that loses the distinction.** The four priority
+icons are deliberately different silhouettes — octagon, triangle, square, circle
+— because barangay offices print rosters on mono laser printers and a colour-blind
+operator has to read them at a glance. Four colours of the same dot would fail
+both.
+
+### 3. `enableEdgeToEdge()`
+
+Needs `androidx.activity:activity-compose:1.9.x`, which is declared. On older
+Activity versions the call does not exist.
+
+**If it fails:** delete the call. It is cosmetic.
+
+### 4. Adaptive launcher icon
+
+`ic_launcher_foreground.xml` is a placeholder vector, and there is no
+`mipmap-*/ic_launcher.png` fallback for pre-API-26 densities. minSdk is 26 so the
+adaptive icon suffices, but some tooling still wants the raster.
+
+**If it fails:** right-click `res` → New → Image Asset in Android Studio and let
+it generate the set.
+
+### 5. Gradle JDK
+
+The modules emit Java 17 bytecode. Android Studio's bundled JDK is 17 or 21;
+either is fine. A JDK 11 configured under Settings → Build Tools → Gradle is not.
+
+---
+
+## What slice 1 contains
+
+- `theme/Tokens.kt` — every colour, size and type value from the design handoff,
+  each carrying its source `oklch()` in a comment. **Nothing outside this file
+  may declare a colour.**
+- `theme/Theme.kt` — Material 3 wiring. No dynamic colour (Material You would
+  recolour delivery chips from the wallpaper, and those colours carry meaning),
+  and no dark theme yet (which greens still mean "confirmed" in the dark is the
+  designer's call, not a guess made here).
+- `components/ConnectivityBanner.kt` — the six-state persistent banner.
+- `components/Chips.kt` — priority and delivery chips.
+- `screens/HomeScreen.kt` — artboard 01.
+- `MainActivity.kt` — renders Home with state from the real, tested factory.
+
+## What it does not contain
+
+The type picker, the report flow, location confirm, review, submitted, my
+reports, report detail, mesh status, and all three responder screens. Also Room,
+SQLCipher, Retrofit, WorkManager and the BLE service.
+
+Those come next, once this compiles.
+
+---
+
+## Once it builds
+
+Tell me it compiled and what you had to change. I will fold the fixes into the
+remaining slices so the same problems are not repeated eleven more times.
+
+## BLE slice — what has and has not seen a compiler
+
+| File | Module | Compiled | Tested |
+|---|---|---|---|
+| `GattContract.kt`, `BleSession.kt`, `CharacteristicCodecs.kt` | `:core-mesh` | yes | 120 tests |
+| `BuligMeshService.kt`, `MeshRadioStatus.kt` | `:app` | **no** | none |
+
+`:app` cannot be compiled in the development container — Google's Android Maven
+mirror is unreachable there, which is why `settings.gradle.kts` only includes
+`:app` when an SDK is present. Everything in `:app` is written against the
+Android documentation and has never been checked by a compiler.
+
+Likely first-build failures in the BLE files, in the order they will appear:
+
+1. **`onCharacteristicRead` signature.** The 4-argument overload with a
+   `ByteArray value` is API 33+. On a `compileSdk` below 33 only the deprecated
+   3-argument form exists, and the override will not resolve. Fix: keep the
+   4-arg override and add the deprecated 3-arg one delegating to it with
+   `characteristic.value`.
+2. **`ADVERTISE_FAILED_FEATURE_UNSUPPORTED`** is a constant on `AdvertiseCallback`;
+   referencing it unqualified inside the anonymous object should work, but if it
+   does not, qualify it as `AdvertiseCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED`.
+3. **`startForeground` on API 34+** requires a `foregroundServiceType` argument
+   and a matching `android:foregroundServiceType="connectedDevice"` in the
+   manifest, plus the `FOREGROUND_SERVICE_CONNECTED_DEVICE` permission.
+4. **Missing permissions annotations.** Lint will flag every Bluetooth call
+   without `@RequiresPermission`. The `SecurityException` catches make these
+   safe at runtime; add `@SuppressLint("MissingPermission")` where lint insists.
+5. **`R.drawable.ic_launcher_foreground`** must exist. If the launcher icon was
+   generated differently, point the notification at whatever icon does exist.
+
+### Deliberately still unwired
+
+- `heldPackets` is always empty: the repository is not connected to the service
+  yet, so the device advertises `pending_count = 0` and offers nothing.
+- The **GATT server role** is not implemented. `BuligMeshService` currently only
+  advertises and acts as a central. Until the server side exists, two Bulig
+  phones can find each other but neither can answer a read — so nothing moves.
+  This is the single largest remaining gap in the BLE work.
+- `ACK` notifications are not subscribed to, so `BleEvent.PacketAcked` is never
+  produced on a device. `BleSession` handles it and is tested for it; nothing
+  yet feeds it.
+
+## Slice 2 — the app you can actually tap through
+
+Home → report flow (4 steps) → confirmation → My reports. All wired to the
+tested reducers in `:data`; `BuligViewModel` holds no rules of its own.
+
+### Fixed before you build
+
+`BuligMeshService` was **not declared in the manifest**. `startForegroundService`
+throws on an undeclared service, so the relay could never have started on any
+device — the app would have looked healthy while being unable to do the one
+thing it exists for. Now declared with `foregroundServiceType="connectedDevice"`,
+which API 34+ requires to match the `startForeground` call exactly.
+
+### Known-honest limitations in this build
+
+These are real and deliberate. None of them is hidden behind UI that implies
+otherwise.
+
+| What | Why it matters | Status |
+|---|---|---|
+| **Storage is in memory** | Reports vanish when the app is killed | **Fixed** — Room + SQLCipher |
+| **Packets are unsigned** (`PacketSigner(null)`) | The server would reject them as `INVALID_HMAC` | `DeviceRegistrar` built and tested; not yet called or stored |
+| **`deviceId` is a fixed string** | Two phones running this build claim the same identity | Needs a persisted per-install id |
+| **No GPS capture** | The location step shows what the flow will report, not a live fix | Not wired |
+| **The mesh service is never started** | No permission request flow yet | Needs a runtime permission prompt |
+| **GATT server role** | Serves all four characteristics; ACK notifications wired | **Built** |
+| **`receiver` is still null** | The server accepts writes but stores nothing — needs a MeshNode, which needs the store | Blocked on Room |
+
+So: this build demonstrates the **resident's flow and the delivery-honesty
+rules** end to end. It does **not** yet demonstrate the mesh actually carrying a
+report between two handsets. That is the next piece of work, and it is the one
+the capstone is actually about.
+
+### Additional likely first-build failures
+
+6. **Material icon names.** `components/EmergencyIcons.kt` is the single most
+   likely file to fail to resolve — `material-icons-extended` does not carry
+   every Material Symbol. Every mapping is in that one function; fix them there.
+7. **`collectAsStateWithLifecycle`** needs
+   `androidx.lifecycle:lifecycle-runtime-compose`, now declared. If the import
+   still fails, check the lifecycle version resolves to 2.8.x.
+8. **`Icons.Filled.ArrowBack`** is deprecated in favour of
+   `Icons.AutoMirrored.Filled.ArrowBack`. It still resolves; if your lint is set
+   to error on deprecation, switch it in `components/Scaffolding.kt`.
+
+
+## Screen coverage
+
+All 12 artboards now have a screen. Every one renders a state object built by a
+tested factory in `:data`; no screen file decides what a resident or responder
+is told.
+
+| Artboard | Screen | State factory | Tests |
+|---|---|---|---|
+| 01 | `HomeScreen` | `HomeStateFactory` | yes |
+| 02–06 | `ReportFlowScreen` | `ReportFlowReducer` | yes |
+| 07 | `MyReportsScreen` | `MyReportsStateFactory` | yes |
+| 08 | `ReportDetailScreen` | `ReportDetailStateFactory` | yes |
+| 09 | `MeshStatusScreen` | `MeshStatusStateFactory` | yes |
+| 10 | `AssignmentListScreen` | `AssignmentListStateFactory` | yes |
+| 11 | `AssignmentDetailScreen` | `AssignmentDetailStateFactory` | yes |
+| 12 | action bar in `AssignmentScreens` | `ActionBarStateFactory` | yes |
+
+Still true, and the reason this table is not a completion claim: **`:app` has
+never been compiled.** The state layers behind these screens have 367 passing
+tests; the screens themselves have none and cannot have any here.
+
+### Not yet routed
+
+`MainActivity` navigates Home → report flow → My reports. The four new screens
+compile-and-run only once something routes to them, and the responder screens
+additionally need a role check — this build has no sign-in, so every install is
+a resident. Routing them is small work, but it is work, and it needs a machine
+that can build.
+
+
+## Everything is now wired
+
+The app is complete end to end. What remains is compiling it.
+
+| Piece | Where | Tested |
+|---|---|---|
+| Encrypted persistence | `ReportDatabase`, `RoomReportStore` | mapping: 18 tests in `:data` |
+| Keystore secrets | `SecureStorage` | policy tested via `CredentialStore` |
+| Registration | `RegistrationManager` | 12 tests |
+| Sync scheduling | `SyncWorker` | coordinator: 28 tests |
+| Permissions | `PermissionScreen` | rules: 15 tests |
+| Mesh ↔ store bridge | `StoreBackedPacketStore` | receiver: 24 tests |
+| Object graph | `Bulig` | — |
+
+### The first build: what to expect
+
+`:app` has still never been compiled. **Assume the first build fails**, and work
+through it — the errors will be import paths, API-level overloads and Material
+icon names, not logic. Every rule the app follows is tested in `:core-mesh` or
+`:data`, which have **432 passing tests** between them.
+
+Additional likely failures, on top of the eight already listed above:
+
+9.  **KSP version.** `2.0.21-1.0.28` must match the Kotlin version exactly. If
+    Gradle complains, find the KSP release paired with Kotlin 2.0.21.
+10. **SQLCipher import.** `net.sqlcipher.database.SupportFactory` is the
+    `sqlcipher-android` artifact's path. The older `android-database-sqlcipher`
+    artifact used the same package, so a stale snippet may resolve to nothing.
+11. **`security-crypto` is alpha.** `1.1.0-alpha06` is the version that supports
+    modern Android; the stable `1.0.0` line is effectively unmaintained. If
+    `MasterKey.Builder` does not resolve, the version is wrong.
+12. **Room needs `exportSchema` to have a directory** — the `ksp { arg(...) }`
+    block supplies it. Without it Room warns; with a wrong path it errors.
+13. **`Bulig.BASE_URL` is `10.0.2.2`**, the emulator's view of your machine.
+    On a real handset this reaches nothing. Change it to your machine's LAN
+    address and add that address to `network_security_config.xml`, or the
+    request is blocked as cleartext.
+
+### Previously absent, now built
+
+- **GPS capture** — `FusedLocationSource` plus `LocationPolicy` (18 tests). The
+  fused provider rather than raw `LocationManager`, because it fuses GPS,
+  network and sensors, which is what produces a fix indoors and under cover.
+- **Responder sign-in** — `AuthApi`, `SessionManager` (24 tests), `LoginScreen`,
+  and routing to the assignment queue.
+- **Mesh Status peers** — `BuligMeshService.LocalBinder` exposes the live peer
+  list and the encounter statistics.
+
+### All wired
+
+- **The assignment queue** is fetched from `GET /api/v1/me/assignments` by
+  `AssignmentApi` (14 tests). A fetch that fails keeps the queue already on
+  screen — a responder walking out of signal must not watch their assignments
+  vanish, and every age is measured from filing so a stale queue is visibly
+  stale rather than misleadingly fresh.
+- **Mesh Status binds to the live service.** `MainActivity` holds the
+  `ServiceConnection` and feeds the peer flow into the ViewModel; the list
+  clears when nothing is bound, because a peer list outliving its service would
+  be the same class of untruth as a premature delivery tick. Bound with flag `0`
+  rather than `BIND_AUTO_CREATE`: the relay's lifetime belongs to the permission
+  flow, not to whether a screen is open.
+- **Assignment detail is routed**, with the status ladder advancing locally
+  first and marking itself unsynced — the same honesty rule a resident's report
+  obeys.
+
+### Nothing left unwired
+
+`AssignmentActions` pushes a responder's status change — `accept`, `decline`
+and the `EN_ROUTE`/`ON_SITE`/`RESOLVED` ladder each to the endpoint the backend
+actually validates. The change is applied **locally first** and only the
+confirmed upload flips the pill from "not yet uploaded", so a responder in
+floodwater sees their tap take effect regardless of signal.
+
+A grep for `TODO` or `TO BE WIRED` across `:app`, `:core-mesh` and `:data`
+now returns nothing. The remaining `TO BE VALIDATED` and `TO BE CONFIGURED`
+markers are deliberate and each needs a decision rather than code:
+
+| Marker | Where | Decision needed |
+|---|---|---|
+| `TO BE CONFIGURED` | `Bulig.BASE_URL` | the barangay's server address |
+| `TO BE REGISTERED` | `BuligMeshService` manufacturer id | currently the SIG's reserved test id `0xFFFF` |
+| `TO BE VALIDATED` | `GattContract` service UUID | check against the SIG assigned-numbers list |
+| `TO BE VALIDATED` | `MAX_STORED_PACKETS` | measure against real storage in the field test |
+| `TO BE VALIDATED` | `EmergencyTypeCatalog` Waray strings | native-speaker review |
+| `TO BE VALIDATED` | `LocationPolicy` accuracy bands | measure real fixes in the barangay |
+| `TO BE REPLACED` | `EmergencyIcons` | ship real Material Symbols as vector drawables |
