@@ -1,23 +1,25 @@
-plugins {
-    kotlin("jvm") version "2.0.21" apply false
-    kotlin("plugin.serialization") version "2.0.21" apply false
-    // kotlin("android") and kotlin("plugin.compose") are declared here too, even
-    // though only :app uses them, and even though neither needs Google's Maven
-    // (JetBrains publishes the Kotlin Gradle Plugin to Maven Central directly).
-    // All of Kotlin's plugin markers — jvm, android, plugin.compose — resolve to
-    // the same kotlin-gradle-plugin artifact; requesting it from two separate
-    // classpath resolutions (root and :app) in the same build is what produces
-    // Gradle's "plugin already on the classpath" error. One version, declared
-    // once, applied without a version in the subproject that needs it, avoids
-    // that entirely.
-    //
-    // The Android Gradle Plugin (com.android.application) stays declared only
-    // in app/build.gradle.kts: it genuinely needs Google's Maven, and declaring
-    // it here — even with apply false — would force that resolution on machines
-    // building only :core-mesh and :data, which have no Android SDK.
-    kotlin("android") version "2.0.21" apply false
-    kotlin("plugin.compose") version "2.0.21" apply false
-}
+// No `plugins` block here, deliberately.
+//
+// Anything declared at the root — even with `apply false` — lands on the
+// buildscript classpath that every subproject inherits, and that breaks this
+// build in two different ways at once:
+//
+//  1. Kotlin's plugin markers (jvm, android, plugin.compose) all resolve to the
+//     same kotlin-gradle-plugin artifact. With one of them on the root
+//     classpath, a subproject asking for another fails with "the plugin is
+//     already on the classpath".
+//
+//  2. Declaring the Android Gradle Plugin here would force every build to
+//     resolve it from Google's Maven, including builds of :core-mesh and :data
+//     on machines that have no Android SDK and no access to that repository.
+//     That is the property docs/06-ble-protocol.md 6.9 relies on: the relay
+//     logic must be testable anywhere.
+//
+// So each module declares and versions the plugins it actually uses. The one
+// rule to keep: the Kotlin version must match across all of them, because
+// KotlinAndroidTarget in :app resolves com.android.build.gradle.api.BaseVariant
+// out of the Android Gradle Plugin sitting in the same classloader, and a split
+// or mismatched resolution turns that into a NoClassDefFoundError at sync time.
 
 allprojects {
     repositories {

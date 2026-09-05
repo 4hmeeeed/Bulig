@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.serialization")
+    kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 // Java 17 bytecode, same as :core-mesh, so the Android modules can consume it.
