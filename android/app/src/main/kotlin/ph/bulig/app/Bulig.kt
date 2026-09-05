@@ -128,12 +128,20 @@ class Bulig(private val context: Context) {
         /**
          * TO BE CONFIGURED before the pilot: the barangay's own server.
          *
-         * 10.0.2.2 is the host machine as seen from the Android emulator, which
-         * is right for development and wrong for every phone. A real deployment
-         * needs an HTTPS address; cleartext to this one is permitted only by the
-         * debug network-security config.
+         * Currently a development machine on the tester's own LAN. Two other
+         * values matter during development:
+         *
+         *  - `http://10.0.2.2:8000` is the host machine as seen from the Android
+         *    emulator. Correct there and wrong on every physical phone.
+         *  - A LAN address like the one below works from a real handset, but only
+         *    while the phone is on the same Wi-Fi as the machine running
+         *    `php artisan serve`, and only because the network-security config
+         *    names it explicitly.
+         *
+         * A real deployment needs an HTTPS address. Cleartext is permitted to
+         * these development hosts alone — see network_security_config.xml.
          */
-        const val BASE_URL = "http://10.0.2.2:8000"
+        const val BASE_URL = "http://192.168.1.10:8000"
 
         @Volatile
         private var instance: Bulig? = null

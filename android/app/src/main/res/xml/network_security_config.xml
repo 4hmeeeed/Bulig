@@ -1,17 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Cleartext is permitted to exactly one host: the emulator's view of the
-  developer's machine. Everything else, including the barangay's real server,
-  must be HTTPS.
+  Cleartext is permitted to named development hosts only. Everything else,
+  including the barangay's real server, must be HTTPS.
 
   A blanket `usesCleartextTraffic="true"` would have been one attribute instead
   of this file, and would also have let a misconfigured pilot deployment send
   emergency reports in the clear over a barangay's Wi-Fi without anyone noticing.
+
+  Each address below is here for one reason:
+    10.0.2.2     the host machine as seen from the Android emulator
+    localhost    the device itself, for instrumentation tests
+    192.168.1.10 the development machine on the tester's own LAN, which is the
+                 only way a physical handset can reach `php artisan serve`
+
+  The LAN address is a development artefact and must be removed before any
+  pilot: it names one particular laptop on one particular network, and leaving
+  it in a shipped build would permit cleartext to whatever else ends up holding
+  that address on a barangay's Wi-Fi.
 -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">10.0.2.2</domain>
         <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">192.168.1.10</domain>
     </domain-config>
 
     <base-config cleartextTrafficPermitted="false" />
