@@ -1,6 +1,7 @@
 package ph.bulig.app.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -37,17 +38,24 @@ class SyncWorker(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val bulig = Bulig.get(applicationContext)
 
+        Log.i(TAG, "sync run starting, base url ${Bulig.BASE_URL}")
+
         // Opportunistic, and never allowed to block the upload. A phone that
         // cannot register can still push packets; the server stores them with
         // hmac_valid null rather than refusing them.
-        when (bulig.registration.ensureRegistered()) {
+        val registration = bulig.registration.ensureRegistered()
+        when (registration) {
             is RegistrationOutcome.Refused -> {
                 // The device is revoked. Uploading would 401 every time, and
                 // retrying a revoked device forever is the battery drain the
                 // failure taxonomy exists to prevent.
+                Log.w(TAG, "device refused by server: ${registration.reason}; not retrying")
                 return@withContext Result.failure()
             }
-            else -> Unit
+            is RegistrationOutcome.Deferred ->
+                Log.w(TAG, "registration deferred: ${registration.reason}; uploading unsigned")
+            is RegistrationOutcome.Registered -> Log.i(TAG, "device registered with the server")
+            is RegistrationOutcome.AlreadyRegistered -> Log.i(TAG, "device already registered")
         }
 
         val outcome = try {
@@ -56,8 +64,19 @@ class SyncWorker(
             // syncOnce is documented never to throw. If it somehow does, a
             // retry is still the right answer — a crashed worker would stop
             // rescheduling and the phone would go quiet.
+            Log.e(TAG, "syncOnce threw, which it is documented not to do", e)
             return@withContext Result.retry()
         }
+
+        // Counts and outcomes only. Nothing here names a reporter, a location,
+        // or the contents of a report — this log is readable by anybody with a
+        // USB cable, and an emergency report is not theirs to read.
+        Log.i(
+            TAG,
+            "sync finished: attempted=${outcome.attempted} accepted=${outcome.accepted} " +
+                "duplicate=${outcome.duplicate} rejected=${outcome.rejected} " +
+                "failed=${outcome.failed}" + (outcome.error?.let { " error=$it" } ?: ""),
+        )
 
         when {
             // Nothing to send is success, not failure. An idle phone should not
@@ -74,6 +93,13 @@ class SyncWorker(
     }
 
     companion object {
+        /**
+         * One tag for the whole sync path, so a field test reduces to
+         * `adb logcat -s BuligSync`. Counts and outcomes only ever — never a
+         * report's contents, its location, or who filed it.
+         */
+        private const val TAG = "BuligSync"
+
         private const val UNIQUE_NAME = "bulig-sync"
 
         /**
