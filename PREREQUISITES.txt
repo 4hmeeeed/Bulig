@@ -1,0 +1,249 @@
+BULIG - SOFTWARE PREREQUISITES (WINDOWS)
+========================================
+
+What to install on a bare Windows machine before anything in RUNNING.md will
+work. This file covers WHAT TO INSTALL only. For what to RUN once it is
+installed, see RUNNING.md. For Android build failures, see android/BUILDING.md.
+
+Tested on Windows 10 (19045) x64. Roughly 15 GB of disk is needed once the
+Android SDK and Gradle caches are populated.
+
+
+--------------------------------------------------------------------------
+1. INSTALL THESE
+--------------------------------------------------------------------------
+
+Install in this order. Reopen your terminal after each one so PATH refreshes.
+
+  1) GIT FOR WINDOWS
+     https://git-scm.com/download/win
+     Accept the defaults.
+     Needed to clone the repository at all.
+
+  2) XAMPP  (or any PHP 8.2+)
+     https://www.apachefriends.org/download.html
+     Only the PHP part is used. Apache and MySQL are never started.
+     If PHP is not on PATH, either add C:\xampp\php to it, or run this in
+     each terminal session:
+         set PATH=C:\xampp\php;%PATH%
+
+  3) COMPOSER
+     https://getcomposer.org/Composer-Setup.exe
+     The installer auto-detects C:\xampp\php\php.exe.
+     Needed for the Laravel backend's dependencies.
+
+  4) NODE.JS  (LTS)
+     https://nodejs.org
+     Needed to build the command centre's front-end assets. This is NOT
+     optional: one backend test renders the sign-in page through Vite and
+     fails with "Vite manifest not found" until `npm run build` has run.
+
+  5) ANDROID STUDIO
+     https://developer.android.com/studio
+     Accept the default components on first run. This single install also
+     supplies:
+         - the Android SDK
+         - platform-tools, which is where adb.exe lives
+         - a bundled JDK (JBR 21) used by builds started inside the IDE
+     When it first opens the project it will offer to install SDK Platform 35
+     and the matching Build-Tools. Accept - the app targets API 35.
+
+  6) A JDK, 17 OR NEWER
+     Android Studio's bundled JDK only covers builds started inside the IDE.
+     Command-line builds (gradlew.bat) need their own JDK on JAVA_HOME, and
+     most of the build/test commands in RUNNING.md are command-line.
+
+     Any ONE of these works. Pick whichever suits the machine:
+
+     a) Eclipse Temurin 17 installer (needs administrator)
+        https://adoptium.net/temurin/releases/?version=17
+        Windows x64 .msi. TICK "Set JAVA_HOME" DURING INSTALL.
+
+     b) Temurin 17 .zip, no administrator needed
+        Download the .zip rather than the .msi from the same page, unpack it
+        anywhere (e.g. %LOCALAPPDATA%\Java\), then set JAVA_HOME yourself:
+            setx JAVA_HOME "%LOCALAPPDATA%\Java\jdk-17.0.20.1+1"
+        Open a new terminal afterwards. This is what was used on the machine
+        this file was written on, because the .msi needs rights that were not
+        available.
+
+     c) The JDK bundled with Android Studio
+        C:\Program Files\Android\Android Studio\jbr
+        Point JAVA_HOME at it. Saves a download; ties your builds to whatever
+        JDK the IDE ships.
+
+     NOTE ON winget: `winget install` is not a reliable way to install either
+     the JDK or Android Studio here. Both wrap GUI installers, both need an
+     elevation prompt, and winget reports "Successfully installed" even when
+     the wizard was dismissed and nothing was installed. Verify afterwards
+     rather than trusting the exit code.
+
+
+--------------------------------------------------------------------------
+2. VERIFY
+--------------------------------------------------------------------------
+
+Open a NEW terminal and run each of these. All must succeed.
+
+    git --version           ->  git version 2.x
+    php -v                  ->  PHP 8.2.x  (8.2 or newer; see note below)
+    composer -V             ->  Composer version 2.x
+    node -v                 ->  v20 or newer
+    java -version           ->  17.x  (or newer)
+    echo %JAVA_HOME%        ->  a real path, not empty
+
+    adb is not on PATH by default. It lives at:
+        %LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe
+
+PHP VERSION NOTE
+    composer.json requires "php": "^8.2", and pins config.platform.php to
+    8.2.12 so that dependency resolution targets that version no matter which
+    PHP actually runs Composer. This exists because a lock file generated on
+    PHP 8.4 pulled in Symfony packages requiring 8.4.1+, which then refused to
+    install on stock XAMPP. Any PHP 8.2 or newer works; do not regenerate the
+    lock file without that pin in place.
+
+
+--------------------------------------------------------------------------
+3. WHAT YOU DO *NOT* NEED
+--------------------------------------------------------------------------
+
+  MySQL / MariaDB
+      The backend runs on SQLite by default (backend/database/database.sqlite).
+      XAMPP's MySQL never needs to be started. Switch DB_CONNECTION to mysql
+      only for a real pilot deployment.
+
+  Apache
+      Laravel is served with `php artisan serve`. Nothing goes in htdocs.
+
+  A standalone Gradle install
+      The Gradle wrapper (gradlew.bat) downloads the exact version the project
+      pins - currently 8.10.2. Installing Gradle separately only invites a
+      version mismatch with the Android Gradle Plugin.
+
+  The Android NDK
+      Builds print "Unable to strip the following libraries" for
+      libsqlcipher.so and libandroidx.graphics.path.so. That is a size warning,
+      not an error, and the build succeeds without it.
+
+  An Android emulator
+      Optional, and not sufficient anyway: the BLE mesh - the point of this
+      project - cannot be tested on an emulator, which has no Bluetooth radio.
+      Note also that the emulator needs a host GPU with Vulkan 1.3+; older
+      integrated graphics fall back to software rendering and may fail to boot
+      Android at all. Use real handsets.
+
+  Anything pinned in the build files
+      Android Gradle Plugin 8.7.3, Kotlin 2.0.21, KSP 2.0.21-1.0.28 and the
+      Compose compiler are all declared in the Gradle files and fetched
+      automatically. Do not install them by hand. The Kotlin version must stay
+      identical across :app, :core-mesh and :data.
+
+
+--------------------------------------------------------------------------
+4. WINDOWS SETUP THAT IS NOT SOFTWARE
+--------------------------------------------------------------------------
+
+These are not installs, but the build or the testing will misbehave without
+them. Each one below cost real debugging time; they are recorded so nobody
+rediscovers them.
+
+  WINDOWS DEFENDER EXCLUSIONS
+      Windows Security -> Virus & threat protection -> Manage settings ->
+      Exclusions -> Add an exclusion -> Folder. Add:
+          C:\xampp\Bulig
+          %USERPROFILE%\.gradle
+          %LOCALAPPDATA%\Android\Sdk
+      Real-time scanning can touch build outputs mid-write.
+
+  FIREWALL RULE FOR THE BACKEND
+      Phones cannot reach `php artisan serve` until TCP 8000 is allowed.
+      In an ADMINISTRATOR command prompt, once:
+          netsh advfirewall firewall add rule name="Laravel 8000" dir=in ^
+              action=allow protocol=TCP localport=8000
+      And serve on all interfaces, not just loopback:
+          php artisan serve --host=0.0.0.0 --port=8000
+
+  APPDATA IS HIDDEN
+      %LOCALAPPDATA%\Android\Sdk will not appear when browsing in Explorer.
+      Either paste the path into the address bar, or turn on
+      View -> Hidden items.
+
+  PREFER WIRELESS DEBUGGING OVER USB
+      A USB cable that intermittently drops will silently truncate an APK
+      during `adb install`, and the device then reports
+          INSTALL_PARSE_FAILED_NO_CERTIFICATES ... digest of contents did not
+          verify
+      which looks like a signing problem and is not. If installs fail that way,
+      confirm the APK itself is fine first:
+          %LOCALAPPDATA%\Android\Sdk\build-tools\<version>\apksigner verify ^
+              --verbose app\build\outputs\apk\debug\app-debug.apk
+      If that reports v2/v3 true, the APK is good and the transfer is at fault.
+      Use wireless debugging instead (section 5).
+
+
+--------------------------------------------------------------------------
+5. PHONE REQUIREMENTS AND SETUP
+--------------------------------------------------------------------------
+
+  REQUIREMENTS
+      - Android 8.0 (API 26) or newer. This is minSdk.
+      - A 64-bit (arm64-v8a) device. Debug builds ship only that ABI to keep
+        the APK small; add "armeabi-v7a" to the debug ndk abiFilters in
+        android/app/build.gradle.kts if you must use a 32-bit handset.
+      - A few GB of free storage. Installation needs considerably more room
+        than the APK's own size.
+      - Bluetooth. TWO phones are required for the mesh test, which is the
+        project's central claim.
+
+  ENABLE DEVELOPER OPTIONS
+      Settings -> About phone -> tap "Build number" seven times.
+
+  ENABLE DEBUGGING
+      Settings -> Developer options -> USB debugging (on)
+      On ColorOS/OPPO also enable "Install via USB" if present.
+
+  WIRELESS DEBUGGING (recommended)
+      Phone and PC must be on the same Wi-Fi network.
+      Settings -> Developer options -> Wireless debugging -> on
+      Tap "Pair device with pairing code", then on the PC:
+          adb pair <ip>:<pairing-port>          (enter the code shown)
+          adb connect <ip>:<connect-port>       (a DIFFERENT port, shown on
+                                                 the main Wireless debugging
+                                                 screen)
+          adb devices
+      With more than one device attached, every adb command needs -s:
+          adb -s <device-id> install app\build\outputs\apk\debug\app-debug.apk
+
+  PERMISSIONS AT RUNTIME
+      The app asks for Bluetooth (scan/advertise/connect) and location. The
+      mesh cannot work without them; Android requires location permission for
+      BLE scanning.
+
+
+--------------------------------------------------------------------------
+6. POINTING THE APP AT YOUR MACHINE
+--------------------------------------------------------------------------
+
+The phones reach the backend over your LAN, so the app needs your PC's
+address. Find it with `ipconfig` (the IPv4 Address of your active adapter).
+
+Set it in android/local.properties, which is per-machine and not committed:
+
+    bulig.baseUrl=http://192.168.1.10:8000
+
+Substitute your own address. If the value is absent the build falls back to
+http://10.0.2.2:8000, which is the emulator's view of the host machine and is
+wrong for every physical phone.
+
+Debug builds permit cleartext HTTP so this works. Release builds do not, and
+must be given an HTTPS address before any pilot.
+
+
+--------------------------------------------------------------------------
+7. NEXT
+--------------------------------------------------------------------------
+
+    RUNNING.md              how to run the backend, the tests, and the phones
+    android/BUILDING.md     Android build failures and their fixes
+    docs/LIMITATIONS.md     what this system does not do, stated plainly

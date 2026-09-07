@@ -126,22 +126,24 @@ class Bulig(private val context: Context) {
 
     companion object {
         /**
-         * TO BE CONFIGURED before the pilot: the barangay's own server.
+         * The server this build talks to.
          *
-         * Currently a development machine on the tester's own LAN. Two other
-         * values matter during development:
+         * Set per build type in `app/build.gradle.kts`. A debug build takes it
+         * from `bulig.baseUrl` in `local.properties`, which is per-machine and
+         * not committed, so pointing at a different laptop or a different
+         * network is a one-line edit outside the source tree — it used to mean
+         * changing this constant and the network-security config together, and
+         * then being careful not to commit either.
          *
-         *  - `http://10.0.2.2:8000` is the host machine as seen from the Android
-         *    emulator. Correct there and wrong on every physical phone.
-         *  - A LAN address like the one below works from a real handset, but only
-         *    while the phone is on the same Wi-Fi as the machine running
-         *    `php artisan serve`, and only because the network-security config
-         *    names it explicitly.
+         * A release build has no usable value here yet: it is an unresolvable
+         * `.invalid` address, so a misconfigured release fails loudly rather
+         * than reaching some unintended host. TO BE CONFIGURED with the
+         * barangay's own HTTPS address before any pilot.
          *
-         * A real deployment needs an HTTPS address. Cleartext is permitted to
-         * these development hosts alone — see network_security_config.xml.
+         * Cleartext HTTP is permitted to debug builds only —
+         * see `src/debug/res/xml/network_security_config.xml`.
          */
-        const val BASE_URL = "http://192.168.1.10:8000"
+        val BASE_URL: String get() = BuildConfig.BASE_URL
 
         @Volatile
         private var instance: Bulig? = null

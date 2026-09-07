@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     // Versioned here, not at the root: see the comment in the root build file
     // for why nothing may sit on the shared parent classpath. The Kotlin
@@ -9,6 +11,30 @@ plugins {
     // version must track the Kotlin version above exactly or it refuses to run.
     id("com.google.devtools.ksp") version "2.0.21-1.0.28"
 }
+
+/**
+ * Where a debug build looks for the backend.
+ *
+ * Read from `local.properties`, which Android Studio already maintains per
+ * machine and git ignores:
+ *
+ *     bulig.baseUrl=http://192.168.1.10:8000
+ *
+ * It lives there rather than in a source file because it is a fact about
+ * whoever is testing, not about the app. It changes with the laptop, with the
+ * Wi-Fi, sometimes with a DHCP lease — and every one of those used to mean
+ * editing Kotlin and a resource file, then remembering not to commit either.
+ *
+ * The fallback is the emulator's view of its host machine: right there, and
+ * wrong on every physical phone.
+ */
+val devBaseUrl: String =
+    Properties().apply {
+        rootProject.file("local.properties")
+            .takeIf { it.exists() }
+            ?.inputStream()
+            ?.use { load(it) }
+    }.getProperty("bulig.baseUrl") ?: "http://10.0.2.2:8000"
 
 android {
     namespace = "ph.bulig.app"
@@ -79,9 +105,22 @@ android {
              * testing. Release builds are untouched and stay universal.
              */
             ndk { abiFilters += listOf("arm64-v8a") }
+
+            buildConfigField("String", "BASE_URL", "\"$devBaseUrl\"")
         }
 
         release {
+            /**
+             * Deliberately not a real address, and deliberately unreachable.
+             *
+             * `.invalid` is reserved by RFC 2606 and can never resolve, so a
+             * release build that nobody configured fails immediately and
+             * visibly instead of quietly pointing at whatever host happened to
+             * answer. The barangay's own HTTPS address goes here — or better,
+             * comes from the release signing setup — before any pilot.
+             */
+            buildConfigField("String", "BASE_URL", "\"https://configure-me.invalid\"")
+
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -101,6 +140,9 @@ android {
 
     buildFeatures {
         compose = true
+        // Off by default in AGP 8. BASE_URL is generated into BuildConfig per
+        // build type, so this has to be on.
+        buildConfig = true
     }
 }
 

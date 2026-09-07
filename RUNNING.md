@@ -21,7 +21,7 @@ If you already have the repo, `git pull` on that branch.
 ## 1 · Prove the tested modules still pass (2 minutes)
 
 Do this **first**, before Android Studio. It needs only a JDK, and it tells you
-whether the 432 Kotlin tests still pass on your machine rather than mine.
+whether the 497 Kotlin tests still pass on your machine rather than mine.
 
 ```bash
 cd android
@@ -101,12 +101,23 @@ fixes, and I wrote the code that caused them.
 
 Once it builds:
 
-1. Set `Bulig.BASE_URL` in `app/src/main/kotlin/ph/bulig/app/Bulig.kt`:
-   - **Emulator** → leave it as `http://10.0.2.2:8000` (the emulator's view of
-     your machine).
-   - **Real phone** → your machine's LAN address, e.g. `http://192.168.1.14:8000`,
-     **and** add that address to `app/src/main/res/xml/network_security_config.xml`
-     or the request is blocked as cleartext.
+1. Tell the build where your server is. Add one line to
+   `android/local.properties` — the file Android Studio already maintains per
+   machine, and which git ignores:
+
+   ```properties
+   bulig.baseUrl=http://192.168.1.14:8000
+   ```
+
+   Use your own machine's LAN address (`ipconfig` on Windows, `ip addr` on
+   Linux, `ifconfig` on macOS). On an **emulator** you can omit the line
+   entirely: the build falls back to `http://10.0.2.2:8000`, the emulator's
+   view of its host.
+
+   Nothing in the source tree needs editing, and cleartext HTTP is already
+   permitted for debug builds. Do not put a LAN address in
+   `src/main/res/xml/network_security_config.xml` — that file is the release
+   posture and is deliberately HTTPS-only.
 2. Run.
 
 ### What to check, in order
@@ -190,4 +201,4 @@ cd backend && php artisan serve
 cd android && ./gradlew :core-mesh:test :data:test && cd ../backend && php artisan test
 ```
 
-**498 tests should pass**: core-mesh 164, data 268, backend 66.
+**563 tests should pass**: core-mesh 164, data 333, backend 66.
