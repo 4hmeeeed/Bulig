@@ -33,6 +33,7 @@ met a radio is evidence of intent, not of function.
 
 | Document | What it is for |
 |---|---|
+| [Status](STATUS.md) | **What is proven, what is not, and what happens next** |
 | [README](../README.md) | What Bulig is, and the repository layout |
 | [PREREQUISITES](../PREREQUISITES.txt) | What to install on a bare machine |
 | [RUNNING](../RUNNING.md) | How to build, run and test the whole system |

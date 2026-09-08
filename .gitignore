@@ -6,3 +6,8 @@
 .obsidian/workspace-mobile.json
 .obsidian/cache
 .obsidian/graph.json
+
+# Machine-specific notes for Claude Code — JDK path, this laptop's LAN IP, which
+# GitHub account the remote uses. Facts about whoever is testing, not about the
+# app, for the same reason 0490a9d took the server address out of the source tree.
+CLAUDE.local.md
