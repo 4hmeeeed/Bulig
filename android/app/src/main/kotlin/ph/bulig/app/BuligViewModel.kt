@@ -24,6 +24,7 @@ import ph.bulig.data.presentation.AssignmentDetailStateFactory
 import ph.bulig.data.presentation.AssignmentListState
 import ph.bulig.data.presentation.AssignmentListStateFactory
 import ph.bulig.data.presentation.CountField
+import ph.bulig.data.presentation.MeshCapability
 import ph.bulig.data.presentation.ResponderStatus
 import ph.bulig.data.presentation.NearbyPeer
 import ph.bulig.data.presentation.EmergencyTypeCatalog
@@ -293,7 +294,7 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
         // A phone with any radio capability at all is worth starting the relay
         // on; one with none would only burn battery holding a foreground
         // notification it cannot act behind.
-        if (state.capability != ph.bulig.data.presentation.MeshCapability.NONE) {
+        if (state.capability != MeshCapability.NONE) {
             BuligMeshService.start(getApplication())
         }
 
@@ -375,6 +376,7 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
                 isSyncing = false,
                 nearbyPeerCount = livePeers.value.size,
                 typeLabels = typeLabels,
+                meshCapability = effectiveMeshCapability(),
             )
 
             _myReports.value = MyReportsStateFactory.build(
@@ -391,6 +393,28 @@ class BuligViewModel(application: Application) : AndroidViewModel(application) {
                 deliveredBecauseOfYou = others.count { it.synced },
                 isRadioActive = ph.bulig.app.ble.MeshRadioStatus.canAdvertise.value,
             )
+        }
+    }
+
+    /**
+     * What the radio can do, permissions and hardware together.
+     *
+     * Two separate facts decide this and either one is enough to cripple the
+     * relay: the resident may have refused BLUETOOTH_ADVERTISE, or the chipset
+     * may simply be unable to advertise — [MeshRadioStatus] learns the second
+     * only once the service has tried. Whichever is worse wins, because the
+     * phone's real capability is the lower of the two.
+     *
+     * Optimistic before the permission screen has run, which is a single frame
+     * at launch and reads as "no phones nearby" rather than as a false alarm.
+     */
+    private fun effectiveMeshCapability(): MeshCapability {
+        val granted = _permissions.value?.capability ?: MeshCapability.FULL
+
+        return when {
+            granted == MeshCapability.NONE -> MeshCapability.NONE
+            !ph.bulig.app.ble.MeshRadioStatus.canAdvertise.value -> MeshCapability.OUTGOING_ONLY
+            else -> granted
         }
     }
 

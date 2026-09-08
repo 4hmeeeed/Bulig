@@ -65,6 +65,11 @@ fun HomeScreen(
     onReportEmergency: () -> Unit,
     onOpenMesh: () -> Unit,
     onOpenReport: (ReportRowState) -> Unit,
+    onOpenMyReports: () -> Unit,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+    /** The signed-in responder's name, or null for an ordinary resident. */
+    responderName: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -90,11 +95,24 @@ fun HomeScreen(
             EmergencyButton(onClick = onReportEmergency)
 
             if (state.recentReports.isNotEmpty()) {
-                SectionLabel(text = "MY REPORTS", trailing = state.totalReportCount.toString())
+                SectionLabel(
+                    text = "MY REPORTS",
+                    trailing = state.totalReportCount.toString(),
+                    // Home shows the two most recent. Without this the full
+                    // list was reachable only in the moment after filing a
+                    // report, which is the one moment nobody needs it.
+                    onClick = onOpenMyReports,
+                )
                 RecentReportsCard(rows = state.recentReports, onOpenReport = onOpenReport)
             }
 
             Spacer(Modifier.weight(1f))
+
+            ResponderLine(
+                responderName = responderName,
+                onSignIn = onSignIn,
+                onSignOut = onSignOut,
+            )
 
             PrototypeDisclaimer()
         }
@@ -208,11 +226,17 @@ private fun MeshStrip(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SectionLabel(text: String, trailing: String? = null) {
+private fun SectionLabel(
+    text: String,
+    trailing: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
     ) {
         Text(
             text = text,
@@ -314,6 +338,41 @@ private fun ReportRow(row: ReportRowState, onClick: () -> Unit) {
     }
 }
 
+/**
+ * The only way into responder mode, and the only way back out of it.
+ *
+ * Deliberately plain text at the foot of the screen, below the fold of
+ * everything that matters: a resident standing in a flood must not find
+ * anything above the emergency button that is not about reporting. But it has
+ * to exist somewhere. Without it `LoginScreen`, the assignment queue and
+ * assignment detail are unreachable on a real device, and a responder who does
+ * sign in can never sign out again — Home sends their mesh affordance to the
+ * queue, and nothing returns them to being a resident.
+ */
+@Composable
+private fun ResponderLine(
+    responderName: String?,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    val label = if (responderName == null) {
+        "Barangay responder? Sign in"
+    } else {
+        "Signed in as $responderName · Sign out"
+    }
+
+    Text(
+        text = label,
+        color = BuligColors.InkSubtle,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = if (responderName == null) onSignIn else onSignOut)
+            .padding(vertical = 6.dp),
+    )
+}
+
 /** Required on this artboard, and it must survive into the build. */
 @Composable
 private fun PrototypeDisclaimer() {
@@ -356,6 +415,9 @@ private fun HomeScreenPreview() {
             onReportEmergency = {},
             onOpenMesh = {},
             onOpenReport = {},
+            onOpenMyReports = {},
+            onSignIn = {},
+            onSignOut = {},
         )
     }
 }

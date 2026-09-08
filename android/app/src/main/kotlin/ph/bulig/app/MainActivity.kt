@@ -262,6 +262,10 @@ private fun BuligApp(viewModel: BuligViewModel = viewModel()) {
                     if (mode is AppMode.Responder) viewModel.openAssignments() else viewModel.openMesh()
                 },
                 onOpenReport = { viewModel.openReport(it.packetId) },
+                onOpenMyReports = viewModel::openMyReports,
+                onSignIn = viewModel::openLogin,
+                onSignOut = viewModel::signOut,
+                responderName = (mode as? AppMode.Responder)?.session?.name,
             )
         }
 

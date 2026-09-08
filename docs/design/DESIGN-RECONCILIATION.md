@@ -193,6 +193,47 @@ sync, never the reverse.
 
 ---
 
+## 8. The mesh strip is always shown, not only when peers are in range
+
+Artboard 01 draws the mesh strip carrying a peer count — "4 Bulig phones
+nearby" — and does not describe what it shows when there are none. The
+implementation filled that gap by hiding the strip whenever the count was
+zero and nothing was being carried, reasoning that an empty strip is noise
+rather than reassurance.
+
+That was wrong here, for two reasons found only by trying to use the app.
+
+The strip is the sole route to the mesh screen (artboard 09). Hiding it meant a
+phone with nobody in range — the ordinary case, and the case during the whole
+of a single-device test — had no way to reach the one screen describing its own
+radio. The screen was reachable exactly when it was least needed.
+
+Worse, some handsets cannot BLE-advertise at all. Such a phone can see others
+and hand packets outward, but can never be found, so it will never be given a
+report to carry. `MeshRadioStatus` exists to record precisely this, and it
+surfaces to the user only on the mesh screen — which the same rule had hidden.
+The app was structurally unable to tell a resident that half of what it promises
+does not work on their phone.
+
+The strip is now shown whenever a relay is running, with three states:
+
+| Condition | Strip reads |
+|---|---|
+| Cannot advertise | "This phone can't be found by others" |
+| No peers in range | "No Bulig phones nearby" |
+| Peers in range | "*n* Bulig phones nearby" (unchanged) |
+
+It is still hidden under `MeshCapability.NONE`, where there is genuinely no
+relay and nothing to describe. The "can't be found" line deliberately precedes
+any peer count: telling somebody "2 phones nearby" when none of them can ever
+hand them a report is the reassuring half of the truth, which is the failure
+this project's design rules exist to prevent.
+
+The replaced test in `HomeStateFactoryTest` carries this reasoning, so the
+change reads as a decision rather than a regression.
+
+---
+
 ## Summary
 
 | Item | Winner | Status |
@@ -205,3 +246,4 @@ sync, never the reverse.
 | Device pseudonyms | design | adopted over a stable id |
 | Encryption at rest | design | accepted, open item |
 | State vocabularies | implemented split | documented rationale |
+| Mesh strip empty state | neither as written | always shown, three honest states |

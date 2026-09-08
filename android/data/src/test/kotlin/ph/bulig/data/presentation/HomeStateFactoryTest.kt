@@ -131,14 +131,54 @@ class HomeStateFactoryTest {
 
     // --- mesh strip -------------------------------------------------------
 
+    /**
+     * This replaces a test that asserted the opposite — that the strip is
+     * hidden with nobody in range, because "an empty mesh strip is noise, not
+     * reassurance". That reasoning is right about clutter and wrong about this
+     * app. The strip is the only route to the mesh screen, so hiding it left a
+     * phone on its own — the ordinary case — with no way to ask what its radio
+     * was doing, and no way to be told it cannot be found. The relay is running
+     * and spending battery either way; a resident is entitled to see that.
+     */
     @Test
-    fun `the mesh strip is hidden when there is no mesh to describe`() {
+    fun `the mesh strip stays visible with nobody in range`() {
         val alone = HomeStateFactory.build(
             myReports = emptyList(), carriedForOthers = emptyList(),
             isOnline = false, isSyncing = false, nearbyPeerCount = 0,
         )
 
-        assertFalse(alone.showMeshStrip, "an empty mesh strip is noise, not reassurance")
+        assertTrue(alone.showMeshStrip, "the only route to the mesh screen must not vanish")
+        assertEquals("No Bulig phones nearby", alone.meshStripText)
+    }
+
+    /** With no radio at all there is no relay, and nothing to describe. */
+    @Test
+    fun `the mesh strip is hidden when nothing can move`() {
+        val dead = HomeStateFactory.build(
+            myReports = emptyList(), carriedForOthers = emptyList(),
+            isOnline = false, isSyncing = false, nearbyPeerCount = 0,
+            meshCapability = MeshCapability.NONE,
+        )
+
+        assertFalse(dead.showMeshStrip)
+    }
+
+    /**
+     * A phone that cannot advertise can see others and can hand packets
+     * outward, but can never be found — so it will never be given a report to
+     * carry. Saying "2 phones nearby" to its owner would be the reassuring half
+     * of the truth.
+     */
+    @Test
+    fun `a phone that cannot be found says so instead of counting peers`() {
+        val deaf = HomeStateFactory.build(
+            myReports = emptyList(), carriedForOthers = emptyList(),
+            isOnline = false, isSyncing = false, nearbyPeerCount = 2,
+            meshCapability = MeshCapability.OUTGOING_ONLY,
+        )
+
+        assertTrue(deaf.showMeshStrip)
+        assertEquals("This phone can't be found by others", deaf.meshStripText)
     }
 
     @Test

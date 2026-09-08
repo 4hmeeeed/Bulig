@@ -45,12 +45,39 @@ data class HomeUiState(
     val totalReportCount: Int,
     /** Reports still owed to the server. Drives the banner's count. */
     val pendingCount: Int,
+    /**
+     * What this phone's radio can actually do — permissions and chipset
+     * together. Decides whether the mesh strip appears at all, and what it
+     * admits to when it does.
+     */
+    val meshCapability: MeshCapability = MeshCapability.FULL,
 ) {
-    /** The mesh strip is only meaningful when there is a mesh to describe. */
-    val showMeshStrip: Boolean get() = nearbyPeerCount > 0 || carryingForOthersCount > 0
+    /**
+     * Shown whenever a relay is running, including when nothing is nearby.
+     *
+     * This used to require a peer in range, on the reasoning that an empty
+     * strip is noise rather than reassurance. That hid two things it should
+     * not have. The strip is the only route to the mesh screen, so a phone on
+     * its own — the ordinary case — could never be asked what its radio was
+     * doing. And a handset that cannot advertise can never be handed a report
+     * to carry, which is exactly the kind of fact this app exists to say out
+     * loud rather than let somebody assume.
+     *
+     * The relay runs, and spends battery, whether or not this strip is drawn.
+     * Saying so is not noise. Under [MeshCapability.NONE] there is genuinely
+     * no relay and nothing to describe, so it stays hidden.
+     */
+    val showMeshStrip: Boolean get() = meshCapability != MeshCapability.NONE
 
     val meshStripText: String
         get() = when {
+            // Deliberately said before any peer count. A phone that cannot be
+            // found may still see others, and reporting "2 phones nearby" to
+            // somebody who can never receive a report from them would be the
+            // reassuring half of the truth.
+            meshCapability == MeshCapability.OUTGOING_ONLY ->
+                "This phone can't be found by others"
+            nearbyPeerCount == 0 -> "No Bulig phones nearby"
             nearbyPeerCount == 1 -> "1 Bulig phone nearby"
             else -> "$nearbyPeerCount Bulig phones nearby"
         }
@@ -75,6 +102,7 @@ object HomeStateFactory {
         isSyncing: Boolean,
         nearbyPeerCount: Int,
         typeLabels: Map<String, TypeLabel> = emptyMap(),
+        meshCapability: MeshCapability = MeshCapability.FULL,
     ): HomeUiState {
         val pendingCount = myReports.count { it.isPendingSync }
 
@@ -88,6 +116,7 @@ object HomeStateFactory {
             recentReports = myReports.take(RECENT_LIMIT).map { it.toRow(typeLabels) },
             totalReportCount = myReports.size,
             pendingCount = pendingCount,
+            meshCapability = meshCapability,
         )
     }
 
