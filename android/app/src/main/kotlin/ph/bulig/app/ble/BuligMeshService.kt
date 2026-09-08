@@ -117,6 +117,14 @@ class BuligMeshService : Service() {
 
     private val activeSessions = mutableMapOf<String, BleSession>()
 
+    /**
+     * When each peer may be approached again after a finished encounter.
+     *
+     * Two phones sitting together with nothing to exchange would otherwise
+     * reconnect on every scan result — several times a second, indefinitely.
+     */
+    private val cooldownUntilMs = mutableMapOf<String, Long>()
+
     private var gattServer: BluetoothGattServer? = null
 
     /**
@@ -274,6 +282,7 @@ class BuligMeshService : Service() {
                     Log.w(TAG, "bluetooth switched off; this phone is relaying nothing")
                     gattServer = null
                     activeSessions.clear()
+                    cooldownUntilMs.clear()
                     seenPeers.clear()
                     lastSeenMs.clear()
                     nearbyPeers.value = emptyList()
@@ -649,6 +658,10 @@ class BuligMeshService : Service() {
         val address = device.address
         if (activeSessions.containsKey(address)) return
 
+        // Silent on purpose: a peer in range produces several scan results a
+        // second, and logging each refusal would bury everything else.
+        if (System.currentTimeMillis() < (cooldownUntilMs[address] ?: 0L)) return
+
         val session = BleSession(
             heldPackets = heldPackets,
             isForwardable = { packet, _ -> !packet.isTerminal },
@@ -793,6 +806,21 @@ class BuligMeshService : Service() {
                 is BleAction.SendPacket -> writeFrames(gatt, action)
                 is BleAction.Disconnect -> {
                     val summary = session.summary()
+
+                    // Re-approaching immediately is how an idle pair of phones
+                    // ends up reconnecting several times a second. Waiting also
+                    // bounds how stale a session's packet list can be: the
+                    // queue is taken when the session is built, so the next
+                    // encounter is what picks up a report filed since.
+                    cooldownUntilMs[gatt.device.address] =
+                        System.currentTimeMillis() + ENCOUNTER_COOLDOWN_MS
+
+                    Log.i(
+                        TAG,
+                        "peer ${peerTag(gatt.device.address)} encounter ended: " +
+                            "delivered=${summary.deliveredCount} skipped=${summary.skipped} " +
+                            "because=${summary.endedBecause}",
+                    )
                     encounters.onEncounterEnded(
                         peer = ph.bulig.mesh.model.DeviceId(gatt.device.address),
                         nowMs = System.currentTimeMillis(),
@@ -1116,6 +1144,16 @@ class BuligMeshService : Service() {
          * reappeared under a rotated address.
          */
         private const val PEER_TTL_MS = 30_000L
+
+        /**
+         * How long to leave a peer alone after an encounter finishes.
+         *
+         * Long enough that two idle phones are not in a permanent reconnect
+         * loop, short enough that a report filed moments ago still moves
+         * quickly — the next encounter is what carries it, because a session
+         * takes its queue when it is built.
+         */
+        private const val ENCOUNTER_COOLDOWN_MS = 15_000L
 
         /**
          * The Bluetooth SIG's Client Characteristic Configuration descriptor.
