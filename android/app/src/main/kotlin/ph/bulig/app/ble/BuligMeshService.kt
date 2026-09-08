@@ -200,6 +200,15 @@ class BuligMeshService : Service() {
 
     private val seenPeers = linkedMapOf<String, NearbyPeer>()
 
+    /**
+     * When each address was last heard from, so the list can forget.
+     *
+     * Kept beside [seenPeers] rather than inside NearbyPeer because that type
+     * describes what a resident is shown, and "when the radio last saw this
+     * MAC" is bookkeeping, not something to put on a screen.
+     */
+    private val lastSeenMs = mutableMapOf<String, Long>()
+
     override fun onCreate() {
         super.onCreate()
         Log.i(TAG, "mesh service starting")
@@ -266,6 +275,7 @@ class BuligMeshService : Service() {
                     gattServer = null
                     activeSessions.clear()
                     seenPeers.clear()
+                    lastSeenMs.clear()
                     nearbyPeers.value = emptyList()
                 }
             }
@@ -665,13 +675,49 @@ class BuligMeshService : Service() {
             val peer = peerTag(gatt.device.address)
 
             if (newState == BluetoothGatt.STATE_CONNECTED) {
-                Log.i(TAG, "peer $peer connected (status=$status)")
-                perform(gatt, session.start(), session)
+                Log.i(TAG, "peer $peer connected (status=$status); discovering services")
+
+                // Android resolves nothing until this finishes: gatt.getService()
+                // returns null, every characteristic read quietly does nothing,
+                // and the session stalls in IDENTIFYING forever while holding a
+                // connection slot and blocking any reconnection to this peer.
+                if (!gatt.discoverServices()) {
+                    Log.e(TAG, "peer $peer service discovery would not start")
+                    perform(gatt, session.onEvent(BleEvent.Failed("discovery not started")), session)
+                }
             } else {
                 // Peers walk out of range constantly; this is ordinary.
                 Log.i(TAG, "peer $peer disconnected (status=$status)")
                 perform(gatt, session.onEvent(BleEvent.Failed("disconnected")), session)
             }
+        }
+
+        /**
+         * Services are resolved; only now can characteristics be read.
+         *
+         * The exchange starts here rather than on connection, because every
+         * action the session asks for needs [serviceUuid] to resolve.
+         */
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            val session = activeSessions[gatt.device.address] ?: return
+            val peer = peerTag(gatt.device.address)
+
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.w(TAG, "peer $peer service discovery failed (status=$status)")
+                perform(gatt, session.onEvent(BleEvent.Failed("discovery failed")), session)
+                return
+            }
+
+            if (gatt.getService(serviceUuid) == null) {
+                // Something else advertising our UUID, or a peer whose GATT
+                // server failed to open. Either way there is nothing to talk to.
+                Log.w(TAG, "peer $peer exposes no Bulig service")
+                perform(gatt, session.onEvent(BleEvent.Failed("no bulig service")), session)
+                return
+            }
+
+            Log.i(TAG, "peer $peer services discovered; starting the exchange")
+            perform(gatt, session.start(), session)
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
@@ -765,10 +811,35 @@ class BuligMeshService : Service() {
         }
     }
 
+    /**
+     * Reads one characteristic, and says so when it cannot.
+     *
+     * This used to be a null-safe chain that did nothing when the service was
+     * unresolved — which is the state every connection starts in until
+     * discovery completes. The read vanished, the session waited for a callback
+     * that would never arrive, and the peer became permanently unreachable
+     * because its stalled session was never cleared. A failure that produces no
+     * log and no state change is the hardest kind to find; it cost an entire
+     * field test to notice.
+     */
     private fun readCharacteristic(gatt: BluetoothGatt, uuid: String) {
-        gatt.getService(serviceUuid)
-            ?.getCharacteristic(UUID.fromString(uuid))
-            ?.let { gatt.readCharacteristic(it) }
+        val peer = peerTag(gatt.device.address)
+        val characteristic = gatt.getService(serviceUuid)?.getCharacteristic(UUID.fromString(uuid))
+
+        if (characteristic == null) {
+            Log.w(TAG, "peer $peer is missing characteristic $uuid")
+            activeSessions[gatt.device.address]?.let {
+                perform(gatt, it.onEvent(BleEvent.Failed("missing characteristic")), it)
+            }
+            return
+        }
+
+        if (!gatt.readCharacteristic(characteristic)) {
+            Log.w(TAG, "peer $peer refused a read of $uuid")
+            activeSessions[gatt.device.address]?.let {
+                perform(gatt, it.onEvent(BleEvent.Failed("read refused")), it)
+            }
+        }
     }
 
     /** The framing is already done — [BleSession] sized these for the negotiated MTU. */
@@ -917,13 +988,51 @@ class BuligMeshService : Service() {
             hopsFromSignal = if (advert.hasInternet) 0 else null,
             hasInternet = advert.hasInternet,
         )
+        lastSeenMs[address] = System.currentTimeMillis()
+
+        publishPeers()
+    }
+
+    /**
+     * Publishes the peer list, dropping anything that has gone quiet.
+     *
+     * Without this the count only ever climbs. Android rotates a device's BLE
+     * address roughly every fifteen minutes for privacy, so the same phone
+     * reappears under a new address — and a new pseudonym, since that is
+     * derived from the address — while the old entry stays forever. A phone
+     * that simply walks out of range was never forgotten either, because the
+     * only removal was an explicit disconnect from our own GATT server.
+     *
+     * Observed in the field: one handset reported three or four phones nearby
+     * while a freshly started one beside it correctly reported one. Telling a
+     * resident that several phones are ready to carry their report when only
+     * one is there is the reassuring half of the truth, which is the failure
+     * this project's rules exist to prevent.
+     *
+     * A peer in range is rediscovered several times a second, so [PEER_TTL_MS]
+     * is generous. Peers with a live session are kept regardless: some handsets
+     * stop advertising while connected, and dropping one mid-encounter would
+     * discard a peer that is actively carrying something.
+     */
+    private fun publishPeers() {
+        val cutoff = System.currentTimeMillis() - PEER_TTL_MS
+
+        val expired = seenPeers.keys.filter { address ->
+            address !in activeSessions && (lastSeenMs[address] ?: 0L) < cutoff
+        }
+
+        if (expired.isNotEmpty()) {
+            Log.i(TAG, "forgetting ${expired.size} peer(s) not heard from recently")
+            expired.forEach { seenPeers.remove(it); lastSeenMs.remove(it) }
+        }
 
         nearbyPeers.value = seenPeers.values.toList()
     }
 
     private fun forgetPeer(address: String) {
         seenPeers.remove(address)
-        nearbyPeers.value = seenPeers.values.toList()
+        lastSeenMs.remove(address)
+        publishPeers()
     }
 
     override fun onDestroy() {
@@ -998,6 +1107,15 @@ class BuligMeshService : Service() {
          * TO BE VALIDATED against real storage during the field test.
          */
         private const val MAX_STORED_PACKETS = 2_000
+
+        /**
+         * How long a peer stays on the list after its last advertisement.
+         *
+         * A phone in range is seen several times a second, so this only expires
+         * devices that have genuinely gone — out of range, switched off, or
+         * reappeared under a rotated address.
+         */
+        private const val PEER_TTL_MS = 30_000L
 
         /**
          * The Bluetooth SIG's Client Characteristic Configuration descriptor.
