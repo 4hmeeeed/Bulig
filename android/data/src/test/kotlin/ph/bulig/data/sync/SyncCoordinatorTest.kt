@@ -215,6 +215,52 @@ class SyncCoordinatorTest {
         )
     }
 
+    /**
+     * A rejection count on its own is not actionable. An unknown emergency type
+     * means the app and the server disagree about the contract; a signature
+     * that failed to verify usually means a key was rotated underneath a report
+     * that was already signed. Those call for opposite responses, and a device
+     * log that says only `rejected=1` cannot tell them apart — which is exactly
+     * what happened during the first hardware test.
+     */
+    @Test
+    fun `a rejection carries the server's reason, not just a count`() {
+        report(1)
+        respond = { req ->
+            SyncResponseDto(
+                serverTime = Iso8601.format(clock.nowMs()),
+                results = req.packets.map {
+                    PacketResultDto(it.packetId, "INVALID_HMAC", reason = "Signature failed")
+                },
+            )
+        }
+
+        val outcome = coordinator().syncOnce()
+
+        assertEquals(1, outcome.rejected)
+        assertEquals(listOf("Signature failed"), outcome.rejections)
+    }
+
+    /** Two packets refused for the same reason are one fact, not two. */
+    @Test
+    fun `repeated rejection reasons are reported once`() {
+        report(1)
+        report(2)
+        respond = { req ->
+            SyncResponseDto(
+                serverTime = Iso8601.format(clock.nowMs()),
+                results = req.packets.map {
+                    PacketResultDto(it.packetId, "UNKNOWN_TYPE", reason = "Unknown emergency type.")
+                },
+            )
+        }
+
+        val outcome = coordinator().syncOnce()
+
+        assertEquals(2, outcome.rejected)
+        assertEquals(listOf("Unknown emergency type."), outcome.rejections)
+    }
+
     @Test
     fun `a transport failure leaves everything queued`() {
         val r = report(1)

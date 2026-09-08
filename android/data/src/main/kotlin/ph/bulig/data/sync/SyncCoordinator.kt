@@ -26,6 +26,18 @@ data class SyncOutcome(
     val rejected: Int,
     val failed: Boolean = false,
     val error: String? = null,
+    /**
+     * Why the rejected packets were rejected, deduplicated.
+     *
+     * The count alone is not actionable: an operator, or a developer reading a
+     * device log, cannot tell an unknown emergency type from a signature that
+     * failed to verify, and those call for opposite responses. The server
+     * already sends a reason per packet; this stops it being discarded at the
+     * point it becomes a number.
+     *
+     * Reasons only — never which report earned them.
+     */
+    val rejections: List<String> = emptyList(),
 ) {
     val settled: Int get() = accepted + duplicate
 }
@@ -114,6 +126,7 @@ class SyncCoordinator(
         var accepted = 0
         var duplicate = 0
         var rejected = 0
+        val rejections = linkedSetOf<String>()
 
         batch.forEach { report ->
             val result = byId[report.packetId.value]
@@ -151,6 +164,7 @@ class SyncCoordinator(
 
                 else -> {
                     rejected++
+                    rejections += result.reason ?: outcome.wire
                     if (outcome.isPermanent) {
                         stateMachine.markPermanentFailure(
                             report.packetId,
@@ -163,7 +177,10 @@ class SyncCoordinator(
             }
         }
 
-        return SyncOutcome(batch.size, accepted, duplicate, rejected)
+        return SyncOutcome(
+            batch.size, accepted, duplicate, rejected,
+            rejections = rejections.toList(),
+        )
     }
 
     private fun recordAttempt(report: LocalReport, nowMs: Long) {

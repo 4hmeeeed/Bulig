@@ -75,7 +75,13 @@ class SyncWorker(
             TAG,
             "sync finished: attempted=${outcome.attempted} accepted=${outcome.accepted} " +
                 "duplicate=${outcome.duplicate} rejected=${outcome.rejected} " +
-                "failed=${outcome.failed}" + (outcome.error?.let { " error=$it" } ?: ""),
+                "failed=${outcome.failed}" + (outcome.error?.let { " error=$it" } ?: "") +
+                (
+                    outcome.rejections
+                        .takeIf { it.isNotEmpty() }
+                        ?.joinToString("; ", prefix = " rejected because: ")
+                        ?: ""
+                    ),
         )
 
         when {

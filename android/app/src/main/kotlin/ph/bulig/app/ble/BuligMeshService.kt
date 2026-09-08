@@ -33,6 +33,7 @@ import android.os.Build
 import android.os.Binder
 import android.os.IBinder
 import android.os.ParcelUuid
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import java.util.UUID
@@ -199,11 +200,13 @@ class BuligMeshService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "mesh service starting")
         startRelayForeground()
 
         if (!hasPermissions()) {
             // Relaying without permission is not possible, and crashing a
             // foreground service in a disaster app is worse than stopping.
+            Log.w(TAG, "stopping: bluetooth permissions are not granted")
             stopSelf()
             return
         }
@@ -225,6 +228,7 @@ class BuligMeshService : Service() {
     private fun startAdvertising() {
         val advertiser = adapter?.bluetoothLeAdvertiser
         if (advertiser == null) {
+            Log.w(TAG, "no BLE advertiser on this handset")
             onAdvertisingUnsupported()
             return
         }
@@ -247,19 +251,28 @@ class BuligMeshService : Service() {
             .addManufacturerData(MANUFACTURER_ID, payload.encode())
             .build()
 
+        Log.i(
+            TAG,
+            "requesting advertising: hasInternet=${payload.hasInternet} " +
+                "pending=${payload.pendingCount}",
+        )
+
         try {
             advertiser.startAdvertising(settings, data, advertiseCallback)
         } catch (e: SecurityException) {
+            Log.e(TAG, "stopping: advertising refused for lack of permission", e)
             stopSelf()
         }
     }
 
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+            Log.i(TAG, "advertising: this phone can now be discovered by peers")
             MeshRadioStatus.reportAdvertisingActive()
         }
 
         override fun onStartFailure(errorCode: Int) {
+            Log.w(TAG, "advertising refused: ${advertiseFailure(errorCode)}")
             if (errorCode == ADVERTISE_FAILED_FEATURE_UNSUPPORTED) {
                 onAdvertisingUnsupported()
             }
@@ -268,6 +281,12 @@ class BuligMeshService : Service() {
 
     /** Surfaced to the user rather than hidden: it halves what this phone can do. */
     private fun onAdvertisingUnsupported() {
+        Log.w(
+            TAG,
+            "advertising unsupported: this phone can still hand packets " +
+                "outward, but it will never be discovered, so it cannot " +
+                "receive one",
+        )
         MeshRadioStatus.reportAdvertisingUnsupported()
     }
 
@@ -283,13 +302,20 @@ class BuligMeshService : Service() {
      * looking healthy while doing nothing.
      */
     private fun startGattServer() {
-        val manager = bluetoothManager ?: return
+        val manager = bluetoothManager ?: run {
+            Log.e(TAG, "no BluetoothManager; the receive path cannot exist")
+            return
+        }
 
         val server = try {
             manager.openGattServer(this, gattServerCallback)
         } catch (e: SecurityException) {
+            Log.e(TAG, "GATT server refused for lack of permission", e)
             null
-        } ?: return
+        } ?: run {
+            Log.e(TAG, "GATT server did not open; peers would read nothing")
+            return
+        }
 
         val service = BluetoothGattService(serviceUuid, BluetoothGattService.SERVICE_TYPE_PRIMARY)
 
@@ -338,9 +364,11 @@ class BuligMeshService : Service() {
         try {
             server.addService(service)
         } catch (e: SecurityException) {
+            Log.e(TAG, "GATT service refused for lack of permission", e)
             return
         }
 
+        Log.i(TAG, "GATT server listening on $serviceUuid")
         gattServer = server
     }
 
@@ -486,7 +514,10 @@ class BuligMeshService : Service() {
     // --- central role -----------------------------------------------------
 
     private fun startScanning() {
-        val scanner = adapter?.bluetoothLeScanner ?: return
+        val scanner = adapter?.bluetoothLeScanner ?: run {
+            Log.e(TAG, "no BLE scanner; this phone cannot discover peers")
+            return
+        }
 
         // Filtering on our own service UUID is what lets the manifest claim
         // neverForLocation: the app never sees devices that are not Bulig.
@@ -501,7 +532,9 @@ class BuligMeshService : Service() {
         try {
             scanner.startScan(listOf(filter), settings, scanCallback)
             encounters.onScanStarted(System.currentTimeMillis())
+            Log.i(TAG, "scanning for peers advertising $serviceUuid")
         } catch (e: SecurityException) {
+            Log.e(TAG, "stopping: scanning refused for lack of permission", e)
             stopSelf()
         }
     }
@@ -518,8 +551,20 @@ class BuligMeshService : Service() {
             if (activeSessions.size >= GattContract.MAX_CONCURRENT_CONNECTIONS &&
                 !advert.hasInternet
             ) {
+                Log.i(
+                    TAG,
+                    "peer ${peerTag(result.device.address)} passed over: at the " +
+                        "connection limit and it has no route out",
+                )
                 return
             }
+
+            Log.i(
+                TAG,
+                "peer ${peerTag(result.device.address)} discovered: " +
+                    "rssi=${result.rssi} hasInternet=${advert.hasInternet} " +
+                    "pending=${advert.pendingCount}",
+            )
 
             encounters.onPeerDiscovered(
                 peer = ph.bulig.mesh.model.DeviceId(result.device.address),
@@ -544,12 +589,15 @@ class BuligMeshService : Service() {
         )
         activeSessions[address] = session
 
+        Log.i(TAG, "peer ${peerTag(address)} connecting")
+
         try {
             device.connectGatt(this, false, gattCallback)
             encounters.onEncounterStarted(
                 ph.bulig.mesh.model.DeviceId(address), System.currentTimeMillis(),
             )
         } catch (e: SecurityException) {
+            Log.e(TAG, "peer ${peerTag(address)} refused for lack of permission", e)
             activeSessions.remove(address)
         }
     }
@@ -558,17 +606,21 @@ class BuligMeshService : Service() {
 
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             val session = activeSessions[gatt.device.address] ?: return
+            val peer = peerTag(gatt.device.address)
 
             if (newState == BluetoothGatt.STATE_CONNECTED) {
+                Log.i(TAG, "peer $peer connected (status=$status)")
                 perform(gatt, session.start(), session)
             } else {
                 // Peers walk out of range constantly; this is ordinary.
+                Log.i(TAG, "peer $peer disconnected (status=$status)")
                 perform(gatt, session.onEvent(BleEvent.Failed("disconnected")), session)
             }
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
             val session = activeSessions[gatt.device.address] ?: return
+            Log.i(TAG, "peer ${peerTag(gatt.device.address)} mtu=$mtu (status=$status)")
             perform(gatt, session.onEvent(BleEvent.MtuNegotiated(mtu)), session)
         }
 
@@ -667,7 +719,20 @@ class BuligMeshService : Service() {
     private fun writeFrames(gatt: BluetoothGatt, action: BleAction.SendPacket) {
         val characteristic = gatt.getService(serviceUuid)
             ?.getCharacteristic(UUID.fromString(GattContract.CHAR_PACKET_IN))
-            ?: return
+            ?: run {
+                Log.w(
+                    TAG,
+                    "peer ${peerTag(gatt.device.address)} exposes no packet-in " +
+                        "characteristic; nothing can be handed to it",
+                )
+                return
+            }
+
+        Log.i(
+            TAG,
+            "peer ${peerTag(gatt.device.address)} sending one packet as " +
+                "${action.frames.size} frames",
+        )
 
         action.frames.forEach { frame ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -807,6 +872,7 @@ class BuligMeshService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.i(TAG, "mesh service stopping")
         try {
             adapter?.bluetoothLeAdvertiser?.stopAdvertising(advertiseCallback)
             adapter?.bluetoothLeScanner?.stopScan(scanCallback)
@@ -817,6 +883,38 @@ class BuligMeshService : Service() {
     }
 
     companion object {
+        /**
+         * One tag for the whole radio path, so a field test reduces to
+         * `adb logcat -s BuligMesh`.
+         *
+         * The radio is the one part of this system no unit test can exercise,
+         * on hardware that varies wildly. Without a log, a mesh that silently
+         * does nothing looks exactly like a mesh that found no peer.
+         */
+        private const val TAG = "BuligMesh"
+
+        /**
+         * A short handle for a peer, for following one encounter across lines.
+         *
+         * Deliberately not the Bluetooth address. logcat is readable by anyone
+         * holding the phone, and the address identifies somebody's handset —
+         * the same reason the sync log carries counts and outcomes but never
+         * who filed what. Four hex characters distinguish the peers in range
+         * without being the identifier itself.
+         */
+        private fun peerTag(address: String): String =
+            "%04x".format(address.hashCode() and 0xFFFF)
+
+        /** The platform's advertising failures, in words rather than integers. */
+        private fun advertiseFailure(code: Int): String = when (code) {
+            AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED -> "already started"
+            AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE -> "advertisement data too large"
+            AdvertiseCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "feature unsupported"
+            AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR -> "internal error"
+            AdvertiseCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "too many advertisers"
+            else -> "unknown code $code"
+        }
+
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "bulig_mesh"
 
