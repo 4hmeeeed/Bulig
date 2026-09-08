@@ -23,8 +23,10 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
@@ -211,9 +213,63 @@ class BuligMeshService : Service() {
             return
         }
 
+        startRadios()
+        // NOT_EXPORTED: only the platform sends this. Explicit because apps
+        // targeting 34+ must declare it, and relying on the system-broadcast
+        // exemption is the kind of thing that changes under you.
+        ContextCompat.registerReceiver(
+            this,
+            bluetoothStateReceiver,
+            IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
+    /**
+     * Brings up all three radio roles. Safe to call again after Bluetooth has
+     * been off: each of these re-reads the adapter and re-registers.
+     */
+    private fun startRadios() {
         startGattServer()
         startAdvertising()
         startScanning()
+    }
+
+    /**
+     * Restarts the radios when Bluetooth comes back.
+     *
+     * Without this the relay dies silently and stays dead. Turning Bluetooth
+     * off — directly, or by enabling airplane mode — tears down the advertiser,
+     * the scanner and the GATT server, and nothing in a running service brings
+     * them back when it returns. The foreground notification stays up, the app
+     * looks healthy, and the phone relays nothing until somebody force-closes
+     * and reopens it. Observed on real hardware: a phone put into airplane mode
+     * for an offline test never rejoined the mesh afterwards.
+     *
+     * For an app whose whole purpose is to work when the network does not,
+     * "the resident switched airplane mode on" is the expected case, not an
+     * edge one.
+     */
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)) {
+                BluetoothAdapter.STATE_ON -> {
+                    Log.i(TAG, "bluetooth came back; restarting the radios")
+                    if (hasPermissions()) startRadios()
+                }
+
+                BluetoothAdapter.STATE_TURNING_OFF, BluetoothAdapter.STATE_OFF -> {
+                    // Nothing to tear down by hand — the platform has already
+                    // invalidated the advertiser, scanner and server. Say so,
+                    // because a silent stop is what made this hard to find.
+                    Log.w(TAG, "bluetooth switched off; this phone is relaying nothing")
+                    gattServer = null
+                    activeSessions.clear()
+                    seenPeers.clear()
+                    nearbyPeers.value = emptyList()
+                }
+            }
+        }
     }
 
     // --- peripheral role --------------------------------------------------
@@ -873,6 +929,13 @@ class BuligMeshService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "mesh service stopping")
+
+        try {
+            unregisterReceiver(bluetoothStateReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Never registered, because onCreate stopped early for permissions.
+        }
+
         try {
             adapter?.bluetoothLeAdvertiser?.stopAdvertising(advertiseCallback)
             adapter?.bluetoothLeScanner?.stopScan(scanCallback)
