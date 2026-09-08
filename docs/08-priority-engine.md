@@ -1,3 +1,9 @@
+---
+title: "08 — Emergency Priority Engine"
+tags: [bulig, priority, rules]
+status: implemented
+---
+
 # 08 — Emergency Priority Engine
 
 Deterministic, configurable, and **explainable**. No machine learning: when the
@@ -131,3 +137,7 @@ versioned JSON. Changing them bumps `config_version`; historical breakdowns keep
 the version they were computed under, so past decisions remain readable in the
 terms that produced them. This satisfies §9's requirement that the formula be
 configurable and clearly documented — without rewriting history.
+
+---
+
+**Related:** [04 — Database design](04-database-erd.md) · [09 — Workflows](09-workflows.md) · [05 — API contract](05-api-contract.md) · [Index](00-index.md)

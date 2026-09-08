@@ -1,3 +1,9 @@
+---
+title: "03 — Screens and Navigation"
+tags: [bulig, ui]
+status: implemented
+---
+
 # 03 — Screens and Navigation
 
 > Final visual design is being produced separately in Claude Design. This
@@ -133,3 +139,7 @@ Minimum 16sp/16px body text, 48dp touch targets, WCAG AA contrast, priority
 never encoded by colour alone (colour + label + icon), full screen-reader
 labelling on the report flow, and Waray-Waray alongside English on
 resident-facing labels.
+
+---
+
+**Related:** [Design handoff](design/HANDOFF.md) · [09 — Workflows](09-workflows.md) · [Limitations](LIMITATIONS.md) · [Index](00-index.md)

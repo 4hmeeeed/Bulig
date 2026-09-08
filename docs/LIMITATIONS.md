@@ -1,3 +1,9 @@
+---
+title: "Limitations and Honest Scope"
+tags: [bulig, honesty, scope]
+status: living
+---
+
 # Limitations and Honest Scope
 
 Stating these clearly is part of the deliverable. A system that overstates what
@@ -51,13 +57,27 @@ Payloads are authenticated (HMAC) but not encrypted between devices. A determine
 attacker with a BLE sniffer within range could read a report in transit. Payload
 encryption is documented future work, not a claimed feature.
 
-## 9a. Local storage is not yet encrypted at rest
-The mobile design tells a resident their report "sits on this phone, encrypted",
-and the design handoff requires encryption at rest. The `:data` layer that would
-provide it (SQLCipher or the platform equivalent) is not built yet. Until it is,
-that screen must not ship — a claim the app does not honour is exactly the
-failure this project's design rules exist to prevent. Tracked in
-`docs/design/DESIGN-RECONCILIATION.md` §6.
+## 9a. Local storage is encrypted, and the key's lifetime is untested
+The mobile design tells a resident their report "sits on this phone, encrypted".
+That is now true. Reports are held in a SQLCipher database opened through
+`SupportOpenHelperFactory`, with a passphrase generated once on the device and
+kept in `EncryptedSharedPreferences` under an AES256-GCM master key from the
+Android Keystore — never compiled into the APK, where it would protect nobody.
+It has been exercised on a real handset: the database opens, writes, and is read
+back across process death. See [11 — Device bring-up](11-device-bringup.md) for
+what it took to get there.
+
+What is **not** established is what happens to that key over a device's life.
+The passphrase exists only on the phone that generated it, which is the correct
+security property and also means a cloud backup, a factory reset, or a migration
+to a new handset leaves an undecryptable database behind — every report on it
+lost, silently. Keystore keys can also be invalidated by changes to the screen
+lock on some devices. None of these paths has been tested, and the app does not
+currently detect or explain the failure. Until they are, the honest claim is
+"encrypted on this phone", not "safe".
+
+Previously tracked as unbuilt in `docs/design/DESIGN-RECONCILIATION.md` §6,
+which is now out of date on this point.
 
 ## 10. Bulig does not replace official emergency services
 It is a barangay-level coordination aid. It is not connected to 911, PNP, BFP, or
@@ -85,3 +105,7 @@ needed and not yet gathered, it is marked **TO BE VALIDATED**.
 The Laravel/MySQL server is not redundant. If it is down, synced packets queue on
 devices and deliver when it returns — but the command center is unavailable in
 the meantime. The mesh keeps working; the coordination layer does not.
+
+---
+
+**Related:** [06 — BLE mesh protocol](06-ble-protocol.md) · [10 — Testing and evaluation plan](10-testing-plan.md) · [11 — Device bring-up](11-device-bringup.md) · [01 — Architecture](01-architecture.md) · [Index](00-index.md)

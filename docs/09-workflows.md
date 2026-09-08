@@ -1,3 +1,9 @@
+---
+title: "09 — Workflows"
+tags: [bulig, workflows]
+status: implemented
+---
+
 # 09 — Workflows
 
 ## 9.1 Emergency lifecycle
@@ -118,3 +124,7 @@ clock skew at sync.
 That last point is deliberate: requiring registration before reporting would
 reintroduce an internet dependency at the exact moment the system is supposed to
 work without one.
+
+---
+
+**Related:** [02 — Roles and permissions](02-roles-permissions.md) · [08 — Priority engine](08-priority-engine.md) · [03 — Screens and navigation](03-screens-navigation.md) · [Index](00-index.md)

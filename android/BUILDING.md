@@ -2,11 +2,16 @@
 
 ## What is verified, and what is not
 
-| Module | Built and tested in CI / this repo? |
+| Module | Built and tested? |
 |---|---|
-| `:core-mesh` | **Yes** — 69 tests |
-| `:data` | **Yes** — 60 tests |
-| `:app` | **No.** Authored, never compiled. Slice 1 only. |
+| `:core-mesh` | **Yes** — 164 tests |
+| `:data` | **Yes** — 335 tests |
+| `:app` | **Yes** — compiles, installs and runs on a physical handset |
+
+`:app` has no automated tests and cannot have meaningful ones here; what is
+claimed for it is that it has been built and exercised by hand. The mesh service
+inside it has still never run against a second phone. See
+[`../docs/11-device-bringup.md`](../docs/11-device-bringup.md).
 
 `:app` needs the Android Gradle Plugin, which resolves from Google's Maven. Any
 machine without the Android SDK — including the environment this was written in
@@ -17,9 +22,13 @@ That split is deliberate. Everything that decides what a resident is told, how
 packets dedupe, what syncs first, and what colour a delivery chip is has already
 been tested off-device. `:app` renders those decisions; it does not make them.
 
-**Expect this slice to need fixes on first build.** It has never seen a
-compiler. The point of shipping one screen rather than twelve is that you find
-the version and toolchain problems once, not thirty times.
+**The first build did need fixes** — nine of them, none caught by any test
+suite, spanning Gradle plugin classloaders, AndroidX configuration, a module's
+`api`/`implementation` boundary, a renamed SQLCipher artifact and its unloaded
+native library, APK signing schemes, and a 429 the client read as revocation.
+All are fixed and documented in
+[`../docs/11-device-bringup.md`](../docs/11-device-bringup.md). Read it before
+building on a new machine; it will save you most of a day.
 
 ---
 
@@ -234,9 +243,10 @@ is told.
 | 11 | `AssignmentDetailScreen` | `AssignmentDetailStateFactory` | yes |
 | 12 | action bar in `AssignmentScreens` | `ActionBarStateFactory` | yes |
 
-Still true, and the reason this table is not a completion claim: **`:app` has
-never been compiled.** The state layers behind these screens have 367 passing
-tests; the screens themselves have none and cannot have any here.
+`:app` now compiles and runs, so this table is no longer blocked on that. It is
+still not a completion claim: the state layers behind these screens are covered
+by the `:core-mesh` and `:data` suites, while the screens themselves have no
+automated tests and cannot have any here.
 
 ### Not yet routed
 
@@ -263,10 +273,13 @@ The app is complete end to end. What remains is compiling it.
 
 ### The first build: what to expect
 
-`:app` has still never been compiled. **Assume the first build fails**, and work
-through it — the errors will be import paths, API-level overloads and Material
-icon names, not logic. Every rule the app follows is tested in `:core-mesh` or
-`:data`, which have **432 passing tests** between them.
+`:app` has been compiled and run. On a **new** machine, assume the first build
+still fails — the failures were environmental and toolchain-shaped rather than
+logical, so they recur wherever the toolchain differs. Every one encountered so
+far is written up with its cause in
+[`../docs/11-device-bringup.md`](../docs/11-device-bringup.md). Every rule the
+app follows is tested in `:core-mesh` or `:data`, which have **499 passing
+tests** between them.
 
 Additional likely failures, on top of the eight already listed above:
 

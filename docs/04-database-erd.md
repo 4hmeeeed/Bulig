@@ -1,3 +1,9 @@
+---
+title: "04 — Database Design (ERD + Data Dictionary)"
+tags: [bulig, data, schema]
+status: implemented
+---
+
 # 04 — Database Design (ERD + Data Dictionary)
 
 MySQL 8 (InnoDB, `utf8mb4_unicode_ci`). SQLite is used for local test runs; no
@@ -217,3 +223,7 @@ map defaults, so §9's "configurable formula" is genuinely configurable.
   ingest, so the device row always exists by then.
 - Deletes are soft on `users` and `emergencies`; `packet_logs`, `status_history`,
   and `audit_logs` are never deleted by the application.
+
+---
+
+**Related:** [05 — API contract](05-api-contract.md) · [07 — Offline storage and sync](07-offline-sync.md) · [08 — Priority engine](08-priority-engine.md) · [Index](00-index.md)

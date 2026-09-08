@@ -40,13 +40,19 @@ android/     core-mesh (relay engine) · data (storage + sync) · app (Compose U
 ```
 
 The two Kotlin modules that carry the logic are pure JVM and fully tested. The
-Compose module is authored but **not yet compiled** — see
-[`android/BUILDING.md`](android/BUILDING.md).
+Compose module now builds, installs and runs on a physical handset — what that
+took, and what it broke, is recorded in
+[`docs/11-device-bringup.md`](docs/11-device-bringup.md); build instructions are
+in [`android/BUILDING.md`](android/BUILDING.md).
+
+The mesh relay itself has **not** yet been exercised between two phones. Until
+it has, that claim is a design, not a result.
 
 ## Design documents
 
 | Document | Covers |
 |---|---|
+| [`00-index.md`](docs/00-index.md) | **Start here** — map of every document, and what is proven vs. specified |
 | [`01-architecture.md`](docs/01-architecture.md) | System overview and principles |
 | [`02-roles-permissions.md`](docs/02-roles-permissions.md) | Five roles, permission matrix, enforcement |
 | [`03-screens-navigation.md`](docs/03-screens-navigation.md) | Every screen, resident / responder / command center |
@@ -57,6 +63,7 @@ Compose module is authored but **not yet compiled** — see
 | [`08-priority-engine.md`](docs/08-priority-engine.md) | Explainable rule-based prioritisation |
 | [`09-workflows.md`](docs/09-workflows.md) | Emergency, responder, and command-center flows |
 | [`10-testing-plan.md`](docs/10-testing-plan.md) | TESTS 1–8, ISO/IEC 25010, SUS, metrics |
+| [`11-device-bringup.md`](docs/11-device-bringup.md) | What broke getting this onto real hardware, and why |
 | [`LIMITATIONS.md`](docs/LIMITATIONS.md) | Honest scope and known constraints |
 | [`design/HANDOFF.md`](docs/design/HANDOFF.md) | Mobile UI design bundle (12 artboards) |
 | [`design/DESIGN-RECONCILIATION.md`](docs/design/DESIGN-RECONCILIATION.md) | Where the design and the built system agree, differ, and why |

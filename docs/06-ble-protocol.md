@@ -1,3 +1,9 @@
+---
+title: "06 — BLE Mesh Protocol (Bulig Relay Protocol v1)"
+tags: [bulig, mesh, ble, protocol]
+status: specified
+---
+
 # 06 — BLE Mesh Protocol (Bulig Relay Protocol v1)
 
 The heart of the project. This document specifies how an emergency packet moves
@@ -378,3 +384,7 @@ deterministic JVM unit tests in milliseconds.
 
 Real-device testing then validates the *radio*; the automated suite validates the
 *protocol*. Both belong in the defense.
+
+---
+
+**Related:** [07 — Offline storage and sync](07-offline-sync.md) · [01 — Architecture](01-architecture.md) · [10 — Testing and evaluation plan](10-testing-plan.md) · [11 — Device bring-up](11-device-bringup.md) · [Limitations](LIMITATIONS.md) · [Index](00-index.md)

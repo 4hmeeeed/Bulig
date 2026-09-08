@@ -1,0 +1,19 @@
+{
+  "useMarkdownLinks": true,
+  "newLinkFormat": "relative",
+  "alwaysUpdateLinks": true,
+  "userIgnoreFilters": [
+    "backend/vendor",
+    "backend/node_modules",
+    "backend/storage",
+    "backend/public/build",
+    "backend/bootstrap/cache",
+    "android/build",
+    "android/.gradle",
+    "android/.kotlin",
+    "android/app/build",
+    "android/core-mesh/build",
+    "android/data/build",
+    "node_modules"
+  ]
+}

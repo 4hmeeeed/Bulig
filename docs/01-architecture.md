@@ -1,3 +1,9 @@
+---
+title: "01 — System Architecture"
+tags: [bulig, architecture]
+status: implemented
+---
+
 # 01 — System Architecture
 
 > **Bulig: An Offline-First Emergency Communication and Disaster Response
@@ -141,3 +147,7 @@ present response times, existing communication tools, connectivity conditions �
 are **TO BE VALIDATED** through interviews, observation, and approved barangay
 records. No such figure appears anywhere in this repository unless it carries a
 citation. Placeholder statistics are not used.
+
+---
+
+**Related:** [06 — BLE mesh protocol](06-ble-protocol.md) · [07 — Offline storage and sync](07-offline-sync.md) · [04 — Database design](04-database-erd.md) · [Limitations](LIMITATIONS.md) · [Index](00-index.md)

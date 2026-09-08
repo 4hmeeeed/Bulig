@@ -1,3 +1,9 @@
+---
+title: "07 — Offline Storage and Synchronisation"
+tags: [bulig, sync, offline]
+status: implemented
+---
+
 # 07 — Offline Storage and Synchronisation
 
 ## 7.1 Local-first write path
@@ -126,3 +132,7 @@ averaged in.
 - That a packet's emergency row already exists.
 - That a device is honest — hence HMAC verification.
 - That a device will ever come back — hence no server-side sessions across syncs.
+
+---
+
+**Related:** [06 — BLE mesh protocol](06-ble-protocol.md) · [05 — API contract](05-api-contract.md) · [04 — Database design](04-database-erd.md) · [11 — Device bring-up](11-device-bringup.md) · [Index](00-index.md)

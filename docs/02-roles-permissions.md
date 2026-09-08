@@ -1,3 +1,9 @@
+---
+title: "02 — Roles and Permissions"
+tags: [bulig, security, roles]
+status: implemented
+---
+
 # 02 — Roles and Permissions
 
 Five roles. Enforced server-side by policies and middleware; the UI only hides
@@ -77,3 +83,7 @@ phone would. Relaying grants **no** ability to read incident data beyond the
 packet the device is carrying, and the payload is HMAC-protected so a relay
 cannot alter it (`06-ble-protocol.md` §6.7). This is deliberate: relay capacity
 scales with total installs, not with staff headcount.
+
+---
+
+**Related:** [05 — API contract](05-api-contract.md) · [09 — Workflows](09-workflows.md) · [04 — Database design](04-database-erd.md) · [Index](00-index.md)

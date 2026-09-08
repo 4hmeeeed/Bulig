@@ -1,0 +1,7 @@
+# Obsidian keeps two kinds of state in .obsidian/. The shared settings —
+# which folders to ignore, and the decision to write markdown links rather
+# than wikilinks so the docs still render on GitHub — belong to the project
+# and are committed. Which panes happen to be open on one machine does not.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache

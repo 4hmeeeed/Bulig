@@ -1,3 +1,9 @@
+---
+title: "10 — Testing and Evaluation Plan"
+tags: [bulig, testing]
+status: living
+---
+
 # 10 — Testing and Evaluation Plan
 
 Two tracks: **automated** tests (repeatable, run in CI) and **field** tests
@@ -234,3 +240,7 @@ Development and demonstration use **synthetic** data only, seeded by
 `DatabaseSeeder` and clearly marked. No real resident's emergency, name, contact,
 or location enters the repository or any screenshot. Field-test reports use
 consented participant data, retained only as long as the study requires (§22).
+
+---
+
+**Related:** [06 — BLE mesh protocol](06-ble-protocol.md) · [11 — Device bring-up](11-device-bringup.md) · [Limitations](LIMITATIONS.md) · [Index](00-index.md)

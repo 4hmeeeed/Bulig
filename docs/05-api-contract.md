@@ -1,3 +1,9 @@
+---
+title: "05 — REST API Contract (`/api/v1`)"
+tags: [bulig, api, contract]
+status: implemented
+---
+
 # 05 — REST API Contract (`/api/v1`)
 
 Laravel 11 + Sanctum. JSON only. All timestamps ISO-8601 UTC.
@@ -162,3 +168,7 @@ without parsing prose:
 
 `sync/packets` is limited per **device**, not per IP — a whole barangay behind
 one NAT must not throttle itself during exactly the event the system exists for.
+
+---
+
+**Related:** [07 — Offline storage and sync](07-offline-sync.md) · [02 — Roles and permissions](02-roles-permissions.md) · [04 — Database design](04-database-erd.md) · [Index](00-index.md)
