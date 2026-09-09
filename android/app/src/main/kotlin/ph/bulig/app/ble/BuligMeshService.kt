@@ -39,6 +39,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import java.util.UUID
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import ph.bulig.app.R
 import ph.bulig.mesh.ble.AdvertisementPayload
 import ph.bulig.mesh.ble.BleAction
@@ -105,15 +107,47 @@ class BuligMeshService : Service() {
      * peer would then be offered yesterday's packets while the urgent one sat on
      * disk. The read is cheap next to a BLE encounter.
      */
+    @Volatile
+    private var cachedPackets: List<MeshPacket> = emptyList()
+
+    private val storeReader = Executors.newSingleThreadScheduledExecutor()
+
+    /**
+     * Packets this device is carrying, served from a background-refreshed cache.
+     *
+     * This is read from [connectTo], which runs on the main thread because it is
+     * called straight out of the BLE scan callback. Reading Room there throws —
+     * Room refuses main-thread queries — and the exception was being swallowed
+     * into an empty list. The mesh therefore believed it held nothing, every
+     * encounter ended "nothing to send", and no packet could ever leave this
+     * phone. Two nights of encounters completed perfectly and moved nothing.
+     *
+     * So the store is read on [storeReader] instead, and the radio path only
+     * ever touches the cache. [REFRESH_PERIOD_SECONDS] bounds how long a report
+     * waits before it can be offered.
+     */
     private val heldPackets: List<MeshPacket>
-        get() = try {
-            bulig.store.all().map { it.packet }
+        get() = cachedPackets
+
+    /**
+     * Re-reads the store. Never called from the main thread.
+     *
+     * A failure is logged rather than swallowed. Relaying nothing is a degraded
+     * service and crashing a foreground service in a disaster is a failed one —
+     * but a degraded service that says nothing is indistinguishable from a
+     * working one, which is how this went unnoticed.
+     */
+    private fun refreshHeldPackets() {
+        try {
+            val fresh = bulig.store.all().map { it.packet }
+            if (fresh.size != cachedPackets.size) {
+                Log.i(TAG, "carrying ${fresh.size} packet(s)")
+            }
+            cachedPackets = fresh
         } catch (e: Exception) {
-            // The database may be locked or unopenable. Relaying nothing is a
-            // degraded service; crashing a foreground service in a disaster is
-            // a failed one.
-            emptyList()
+            Log.e(TAG, "could not read the report store; relaying nothing", e)
         }
+    }
 
     private val activeSessions = mutableMapOf<String, BleSession>()
 
@@ -229,6 +263,13 @@ class BuligMeshService : Service() {
             stopSelf()
             return
         }
+
+        // Before the radios, so the first encounter has a populated cache
+        // rather than an empty one. Never on the main thread: that is what
+        // silently emptied this list and stopped the mesh sending anything.
+        storeReader.scheduleWithFixedDelay(
+            ::refreshHeldPackets, 0, REFRESH_PERIOD_SECONDS, TimeUnit.SECONDS,
+        )
 
         startRadios()
         // NOT_EXPORTED: only the platform sends this. Explicit because apps
@@ -1066,6 +1107,7 @@ class BuligMeshService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i(TAG, "mesh service stopping")
+        storeReader.shutdownNow()
 
         try {
             unregisterReceiver(bluetoothStateReceiver)
@@ -1154,6 +1196,14 @@ class BuligMeshService : Service() {
          * takes its queue when it is built.
          */
         private const val ENCOUNTER_COOLDOWN_MS = 15_000L
+
+        /**
+         * How often the carried-packet list is re-read from the store.
+         *
+         * Bounds the delay between a resident filing a report and the mesh
+         * being able to offer it to a peer.
+         */
+        private const val REFRESH_PERIOD_SECONDS = 5L
 
         /**
          * The Bluetooth SIG's Client Characteristic Configuration descriptor.

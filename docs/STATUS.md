@@ -6,7 +6,7 @@ status: living
 
 # Project status
 
-**As of 2026-09-08, commit `2c58577`, branch
+**As of 2026-09-09, commit `1cf74bd`+, branch
 `claude/bulig-emergency-system-9qzwst`.**
 
 A living document. It exists because passing tests and working software are not
@@ -27,21 +27,40 @@ tests:
   barangay command center with a code and a priority.
 - The backend serves the command center and the API over the LAN.
 
-## Built, but never executed
+## The mesh works. Demonstrated end to end on 2026-09-09.
 
-**The BLE mesh.** This is the capstone's actual claim and it remains unproven.
+**A report was delivered by a phone that did not write it.** Two handsets, an
+Infinix X6731 and a Samsung SM-A256E, with the backend server stopped:
 
-`app/src/main/kotlin/ph/bulig/app/ble/BuligMeshService.kt` is ~900 lines of real
-`BluetoothLeAdvertiser`, `BluetoothLeScanner` and GATT code, backed by four
-`:core-mesh` BLE classes. There are no TODOs or stubs. It is wired into
-`BuligViewModel`, bound from `MainActivity`, and every permission is declared.
-Its *logic* — framing, chunking, dedup, TTL, forwarding policy, bloom digest —
-is unit-tested in pure Kotlin.
+1. The server was shut down, so nothing could be uploaded by anyone.
+2. A Fire report was filed on the Infinix. Its confirmation read *"Saved on
+   your phone — your report has not reached the barangay yet"*.
+3. The two phones met over BLE. The Infinix logged
+   `sending one packet as 1 frames`; the Samsung's carried count went 1 to 2.
+4. The Infinix's Wi-Fi was switched off, so it could never deliver anything.
+5. The server was restarted. The Samsung synced:
+   `attempted=2 accepted=2 duplicate=0 rejected=0`.
 
-It has never run against a real radio with a second phone present.
+The server recorded packet 12 as `origin_device = 6` (the Infinix),
+`current_device = 7` (the Samsung), `hop_count = 1`,
+`hmac_valid = true`, `status = ACCEPTED`, and raised emergency
+`BLG-2026-0009`.
 
-Until it has, `docs/06-ble-protocol.md` is `specified`, and
-`docs/LIMITATIONS.md` §1–6 describe intent rather than observation.
+That is the claim: authored on a phone with no signal, carried by a stranger's
+phone, delivered by a device that never wrote it.
+
+Six defects had to be fixed to get there, all of them invisible to the test
+suites and all recorded in [11 — Device bring-up](11-device-bringup.md). The
+last was the decisive one: the mesh read its outbound packet list on the main
+thread, Room refuses main-thread queries, and the exception was swallowed into
+an empty list — so every encounter completed perfectly and carried nothing.
+
+### Still unproven
+
+- More than two phones, and more than one hop.
+- Any real distance, obstruction, or movement. All of the above happened with
+  two handsets side by side on a desk.
+- Battery cost over a sustained period.
 
 ## Tests
 
@@ -51,7 +70,7 @@ Until it has, `docs/06-ble-protocol.md` is `specified`, and
 | `:data` | 337 | `./gradlew.bat :data:test` |
 | backend | 66 (190 assertions) | `php artisan test` |
 
-**567 total**, all passing at this commit. `:app` has no automated tests and
+**568 total** (`:data` gained a millisecond round-trip test), all passing. `:app` has no automated tests and
 cannot meaningfully have any here; what is claimed for it is that it has been
 built and exercised by hand.
 
@@ -85,21 +104,33 @@ loads *on the phone* before installing anything. Then, with
 
 Full checklist with rationale: `RUNNING.md` §4.
 
-### 2. The two-phone mesh test — the research claim
+### 2. Widen the mesh evidence
 
-Needs a second handset. Both phones on Bluetooth only, no Wi-Fi or mobile data.
-File a report on phone A; bring the phones together; confirm phone B is carrying
-it; then enable Wi-Fi on **B only**. Phone A's report must reach the command
-center, uploaded by a device that never authored it.
+The single-hop case is proven. What is not:
 
-If it fails, the layered breakdown in `RUNNING.md` §5 isolates which stage broke
-— discovery, connection, transfer, or sync.
+- **Three or more phones, and two or more hops.** Every relay rule in
+  `:core-mesh` — TTL, dedup, forwarding policy — is only exercised by tests.
+- **Distance, walls and movement.** The demonstration happened with two
+  handsets side by side on a desk.
+- **Battery cost.** `docs/LIMITATIONS.md` §5 calls this a real constraint and
+  no measurement exists.
+
+### 3. Known rough edges, none blocking
+
+- The advertisement payload is built once in `startAdvertising` and never
+  rebuilt, so `hasInternet` and `pendingCount` go stale. Peers use
+  `hasInternet` to prioritise, so this misinforms the mesh.
+- Scanning runs at `SCAN_MODE_LOW_LATENCY` with no report delay — several
+  callbacks a second per peer, which is more radio and CPU than a disaster app
+  should spend.
+- When Bluetooth is off the mesh strip still says "No Bulig phones nearby"
+  rather than saying the radio is off. It reports having looked when it never
+  looked.
 
 ## Deferred, with reasons
 
 | Item | Why it is waiting |
 |---|---|
-| Two-phone mesh test | Needs a second handset present |
 | UI polish | Described as "a bit off"; correctness first |
 | Waray-Waray copy review | Needs a native speaker — see `docs/LIMITATIONS.md` §14 |
 | Keystore key lifetime | Backup, factory reset and migration paths untested — `docs/LIMITATIONS.md` §9a |
