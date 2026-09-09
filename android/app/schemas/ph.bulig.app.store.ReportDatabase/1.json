@@ -1,0 +1,214 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "46ddcb1bae242072ee46ec98a633e482",
+    "entities": [
+      {
+        "tableName": "reports",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`packet_id` TEXT NOT NULL, `emergency_id` TEXT NOT NULL, `origin_device_id` TEXT NOT NULL, `created_at_device_ms` INTEGER NOT NULL, `hop_count` INTEGER NOT NULL, `ttl_remaining` INTEGER NOT NULL, `ttl_initial` INTEGER NOT NULL, `hmac` TEXT, `route_path_json` TEXT NOT NULL, `type_code` TEXT NOT NULL, `description` TEXT, `affected_count` INTEGER NOT NULL, `children_count` INTEGER NOT NULL, `elderly_count` INTEGER NOT NULL, `mobility_limited_count` INTEGER NOT NULL, `is_life_threatening` INTEGER NOT NULL, `vulnerability_notes` TEXT, `latitude` REAL, `longitude` REAL, `accuracy_m` REAL, `location_provider` TEXT, `captured_at_ms` INTEGER, `delivery_state` TEXT NOT NULL, `emergency_code` TEXT, `priority_level` TEXT, `handoffs_json` TEXT NOT NULL, `synced` INTEGER NOT NULL, `permanent_failure` TEXT, `attempt_count` INTEGER NOT NULL, `last_attempt_at_ms` INTEGER, `is_mine` INTEGER NOT NULL, PRIMARY KEY(`packet_id`))",
+        "fields": [
+          {
+            "fieldPath": "packetId",
+            "columnName": "packet_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emergencyId",
+            "columnName": "emergency_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originDeviceId",
+            "columnName": "origin_device_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtDeviceMs",
+            "columnName": "created_at_device_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hopCount",
+            "columnName": "hop_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ttlRemaining",
+            "columnName": "ttl_remaining",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ttlInitial",
+            "columnName": "ttl_initial",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hmac",
+            "columnName": "hmac",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "routePathJson",
+            "columnName": "route_path_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "typeCode",
+            "columnName": "type_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "affectedCount",
+            "columnName": "affected_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "childrenCount",
+            "columnName": "children_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elderlyCount",
+            "columnName": "elderly_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mobilityLimitedCount",
+            "columnName": "mobility_limited_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isLifeThreatening",
+            "columnName": "is_life_threatening",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vulnerabilityNotes",
+            "columnName": "vulnerability_notes",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "accuracyM",
+            "columnName": "accuracy_m",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "locationProvider",
+            "columnName": "location_provider",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "capturedAtMs",
+            "columnName": "captured_at_ms",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "deliveryState",
+            "columnName": "delivery_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "emergencyCode",
+            "columnName": "emergency_code",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "priorityLevel",
+            "columnName": "priority_level",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "handoffsJson",
+            "columnName": "handoffs_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "synced",
+            "columnName": "synced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "permanentFailure",
+            "columnName": "permanent_failure",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "attemptCount",
+            "columnName": "attempt_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastAttemptAtMs",
+            "columnName": "last_attempt_at_ms",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isMine",
+            "columnName": "is_mine",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "packet_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46ddcb1bae242072ee46ec98a633e482')"
+    ]
+  }
+}

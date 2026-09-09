@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The shipped posture: HTTPS only, no exceptions, no named hosts.
+
+  A blanket `usesCleartextTraffic="true"` would have been one attribute instead
+  of this file, and would also have let a misconfigured pilot deployment send
+  emergency reports in the clear over a barangay's Wi-Fi without anyone noticing.
+
+  Development hosts are deliberately absent. They live in
+  `src/debug/res/xml/network_security_config.xml`, which replaces this file in
+  debug builds only — so a laptop's LAN address can never reach a release build,
+  and nobody has to remember to strip one out before a pilot. Earlier this file
+  named a specific development machine, and that address travelled with every
+  build made from this repository.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

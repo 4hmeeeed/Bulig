@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG BUILDS ONLY.
+
+  A file of the same name in the debug source set replaces the one in `main`,
+  so this governs debug builds and never reaches a release build. The release
+  posture stays what `src/main/res/xml/network_security_config.xml` says:
+  HTTPS only.
+
+  Cleartext is allowed here to any host because the development server is
+  wherever the tester's laptop happens to be — `php artisan serve` on a LAN
+  address that changes with the machine, the Wi-Fi, or a DHCP lease. Naming
+  those addresses one at a time meant editing this file, and the app's
+  BASE_URL, every time either changed; the address now comes from
+  `bulig.baseUrl` in `local.properties` instead, and this file stops being in
+  the way.
+
+  This is safe precisely because it is scoped to debug: the trade is between a
+  developer's own machine and a resident's emergency report, and only the
+  former is exposed here.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

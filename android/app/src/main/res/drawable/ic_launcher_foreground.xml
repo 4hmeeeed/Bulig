@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder mark: a relay node. Replace with the real brand asset. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#D2352A"
+        android:pathData="M54,34m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
+    <path
+        android:fillColor="#2A5AC4"
+        android:pathData="M34,70m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+    <path
+        android:fillColor="#2A5AC4"
+        android:pathData="M74,70m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+    <path
+        android:strokeColor="#6E717A"
+        android:strokeWidth="2.5"
+        android:pathData="M54,43 L34,63 M54,43 L74,63" />
+</vector>
