@@ -247,10 +247,25 @@ class BackoffPolicy(
 
 /** Minimal ISO-8601 UTC formatting, so the module stays dependency-light. */
 object Iso8601 {
+    /**
+     * Milliseconds are carried, and that is not cosmetic.
+     *
+     * A packet is signed over `createdAtDeviceMs` — the raw millisecond value.
+     * The server re-derives that number from this string before checking the
+     * MAC. Formatting to whole seconds therefore threw away part of the signed
+     * value: the device signed ...482 and the server verified ...000, so every
+     * real packet failed verification unless its timestamp happened to land
+     * exactly on a second boundary, roughly one time in a thousand.
+     *
+     * The shared cross-language fixture could not catch this, because its
+     * timestamp is a whole second and both languages agree on it. Found only
+     * when a real handset's first report reached the server and was stored
+     * with hmac_valid = false.
+     */
     fun format(epochMs: Long): String =
         java.time.Instant.ofEpochMilli(epochMs)
             .atZone(java.time.ZoneOffset.UTC)
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
 
     fun parse(value: String): Long = java.time.Instant.parse(value).toEpochMilli()
 }

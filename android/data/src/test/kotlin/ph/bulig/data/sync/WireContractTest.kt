@@ -110,9 +110,28 @@ class WireContractTest {
     fun `timestamps are iso 8601 utc`() {
         val dto = sample.toDto()
 
-        assertEquals("2026-08-27T03:52:11Z", dto.createdAtDevice)
-        assertEquals("2026-08-27T03:52:09Z", dto.payload.capturedAt)
+        assertEquals("2026-08-27T03:52:11.000Z", dto.createdAtDevice)
+        assertEquals("2026-08-27T03:52:09.000Z", dto.payload.capturedAt)
         assertEquals(1_787_802_731_000, Iso8601.parse(dto.createdAtDevice))
+    }
+
+    /**
+     * The wire timestamp must carry everything that was signed.
+     *
+     * A packet's MAC covers `createdAtDeviceMs`; the server recovers that
+     * number by parsing this string. Anything the format drops, the server
+     * cannot reconstruct, and the signature fails for a reason that looks
+     * nothing like a formatting problem. This is the test the shared fixture
+     * cannot be: its timestamp is a whole second, so a formatter that silently
+     * truncated milliseconds agreed with the server on the fixture and
+     * disagreed on every real packet.
+     */
+    @Test
+    fun `a timestamp survives the wire without losing milliseconds`() {
+        val awkward = 1_787_802_731_482L
+
+        assertEquals(awkward, Iso8601.parse(Iso8601.format(awkward)))
+        assertEquals("2026-08-27T03:52:11.482Z", Iso8601.format(awkward))
     }
 
     @Test
